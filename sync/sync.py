@@ -171,6 +171,8 @@ def parse(text):
 
 
 def q(key, s):
+    if isinstance(s, (int, float)) and not isinstance(s, bool):
+        return str(int(s)) if float(s).is_integer() else str(s)  # numbers stay numbers in Obsidian
     s = str(s)
     if s == '':
         return '""'
@@ -370,7 +372,8 @@ def row_to_note(table, row, old_text):
                 if created is not None:
                     fm['Created'] = created
             elif key in metrics:
-                fm[key] = from_col(metrics[key], 'num')
+                v = metrics[key]
+                fm[key] = v if isinstance(v, (int, float)) else from_col(v, 'num')
             elif key in extra:
                 fm[key] = extra[key]
     body = row.get('body') or ''
