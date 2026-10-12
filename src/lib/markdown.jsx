@@ -9,8 +9,10 @@ export function inline(text, keyBase = 'i') {
   const out = [];
   let last = 0, m, k = 0;
   const s = String(text);
-  INLINE.lastIndex = 0;
-  while ((m = INLINE.exec(s))) {
+  // A fresh regex per call: bold and italics recurse into inline(), and a shared
+  // global regex would have its position reset by the inner call and loop forever.
+  const re = new RegExp(INLINE.source, 'g');
+  while ((m = re.exec(s))) {
     if (m.index > last) out.push(s.slice(last, m.index));
     const key = `${keyBase}-${k++}`;
     if (m[1]) out.push(<strong key={key}>{inline(m[1].slice(2, -2), key)}</strong>);
@@ -29,7 +31,7 @@ export function inline(text, keyBase = 'i') {
       out.push(<a key={key} href={url} target="_blank" rel="noopener noreferrer">{url.replace(/^https?:\/\/(www\.)?/, '')}</a>);
       if (trail) out.push(trail);
     }
-    last = INLINE.lastIndex;
+    last = re.lastIndex;
   }
   if (last < s.length) out.push(s.slice(last));
   return out;
