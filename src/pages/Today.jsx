@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { CLOSED } from '../lib/constants.js';
 import { addDays, diffDays, greeting, mondayOf, todayYMD } from '../lib/dates.js';
 import { Panel, Skel, TaskRow, toggler } from '../components/bits.jsx';
@@ -8,6 +10,8 @@ export default function Today({ store, onOpen }) {
   const { tasks } = store;
   const today = todayYMD();
   const toggle = toggler(store);
+  const navigate = useNavigate();
+  const [ask, setAsk] = useState('');
   const open = (tasks || []).filter((t) => !CLOSED.has(t.status));
   const late = open.filter((t) => t.due && diffDays(t.due, today) < 0);
   const dueToday = open.filter((t) => t.due === today || (t.priority === 'Today' && (!t.due || t.due >= today)));
@@ -29,6 +33,10 @@ export default function Today({ store, onOpen }) {
           </div>
         ) : <div className="summary">Pulling today together…</div>}
       </div>
+      <form className="quick-ask" onSubmit={(e) => { e.preventDefault(); if (ask.trim()) navigate('/athena', { state: { ask: ask.trim() } }); }}>
+        <input type="text" value={ask} onChange={(e) => setAsk(e.target.value)} placeholder="Ask Athena anything, or tell her what to change" aria-label="Ask Athena" />
+        <button className="btn" type="submit">Ask Athena</button>
+      </form>
       <div className="grid-today">
         <div className="col">
           <Panel title="Today" eyebrow={late.length ? `${late.length} late` : null}>

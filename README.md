@@ -7,6 +7,8 @@ Stephanie's Chief of Staff app for operations and marketing. React on Netlify, S
 - Sign in with Google. Only emails in the `allowed_users` table get in.
 - Today, Tasks and Week views. Add, edit, complete and delete tasks.
 - Two-way vault sync every 15 minutes (`sync/sync.py`, run by `.github/workflows/vault-sync.yml`).
+- Marketing hub: pipeline, calendar, idea bank and brand files.
+- Athena chat: messages go to `athena_requests`, the `athena-dispatch` edge function starts `.github/workflows/athena.yml`, and Claude Code answers using `athena/db.py`.
 - Database tables for briefs, money, content, Rocks, Scorecard, Issues, Level 10, pages, calendar feeds and Athena requests. The screens for those come next.
 
 ## One-time setup
@@ -28,6 +30,10 @@ Stephanie's Chief of Staff app for operations and marketing. React on Netlify, S
 - `SUPABASE_URL`: `https://dgjbzkslgjqsopjzzeqy.supabase.co`
 - `SUPABASE_SERVICE_ROLE_KEY`: Supabase > Project Settings > API Keys > `service_role` (secret, never put it in Netlify or the app).
 - `VAULT_TOKEN`: a fine-grained GitHub token with Contents read and write on `Sholbk/athena-vault` only.
+
+### 5. Athena chat
+- GitHub secret `CLAUDE_CODE_OAUTH_TOKEN`: on a Mac, install Claude Code (`curl -fsSL https://claude.ai/install.sh | bash`), run `claude setup-token`, sign in, and paste the token it prints.
+- Supabase > Edge Functions > Secrets: add `GITHUB_DISPATCH_TOKEN`, a fine-grained GitHub token with Contents read and write on `Sholbk/Athena` only. The `athena-dispatch` function uses it to start the Athena workflow.
 
 Then run Actions > Vault sync > Run workflow, first with "Only show what would change" ticked, then for real. The first real run imports every vault note.
 
