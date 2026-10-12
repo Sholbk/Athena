@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { CHANNELS, CONTENT_STATUSES, DEFAULT_CTA, copyChecks } from '../lib/content.js';
+import { askAthena } from '../lib/athena.js';
 
 // The next step for a piece, so the common move is one click.
 const NEXT = {
@@ -39,6 +40,21 @@ export default function ContentDrawer({ row, store, onClose }) {
     setBusy(false);
   };
   const step = NEXT[f.status];
+  const [brief, setBrief] = useState('');
+  const [drafting, setDrafting] = useState(false);
+  const draft = async () => {
+    if (dirty && !confirm('You have unsaved edits. Athena will work from the saved version. Continue?')) return;
+    setDrafting(true); setMsg('');
+    const ask = `Draft the copy for the content piece with id ${row.id}, titled "${row.title}"` +
+      (row.channel ? ` for ${row.channel}` : '') + '. Read it with db.py first, including its notes. ' +
+      'Read the ColibriOS Brand Files page before writing. Save the copy into its body, keep or set the one CTA, ' +
+      'and set the status to Awaiting approval. Then tell me in two lines what angle you took.' +
+      (brief.trim() ? ` Stephanie adds: ${brief.trim()}` : '');
+    try {
+      const { startError } = await askAthena(ask);
+      setMsg(startError ? `Saved for Athena, but she did not start: ${startError}` : 'Athena is drafting. The copy appears here when she is done, and her note is in the Athena tab.');
+    } catch (e) { setMsg(e.message); setDrafting(false); }
+  };
   const drop = async () => {
     if (!confirm('Delete this piece? It is removed from Obsidian on the next sync too.')) return;
     try { await store.remove(row.id); onClose(); } catch (e) { setMsg(e.message); }
@@ -78,7 +94,13 @@ export default function ContentDrawer({ row, store, onClose }) {
           <button className="linkbtn danger" type="button" onClick={drop}>Delete</button>
         </div>
         <p className="d-msg" role="status">{msg}</p>
-        <button className="btn ghost" type="button" disabled title="Arrives with Athena chat">Ask Athena to draft this (coming with chat)</button>
+        <div className="draft-ask">
+          <label className="f">Anything Athena should know for the draft? (optional)
+            <input type="text" value={brief} onChange={(e) => setBrief(e.target.value)} placeholder="Angle, length, who it's for" />
+          </label>
+          <button className="btn ghost" type="button" disabled={drafting} onClick={draft}>{drafting ? 'Sent to Athena…' : 'Ask Athena to draft this'}</button>
+          <p className="small muted">She writes in your voice from the brand files, saves the copy here, and sets it to Awaiting approval. About 2 to 3 minutes. Save your own edits first.</p>
+        </div>
         {row.vault_path && <p className="small muted">In Obsidian: {row.vault_path}</p>}
       </aside>
     </>

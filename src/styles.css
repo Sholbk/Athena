@@ -197,3 +197,34 @@ ul.plain{margin:0;padding-left:18px} ul.plain li{margin:4px 0}
 .row-input{display:flex;gap:8px;flex-wrap:wrap} .row-input input{flex:1 1 220px}
 .checks{background:var(--warn-soft);border-radius:8px;padding:10px 14px;font-size:14px}
 .checks ul{margin:6px 0 0;padding-left:18px}
+
+/* Athena chat */
+.quick-ask{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin:0 0 18px;max-width:760px}
+.quick-ask input{font-size:16px;padding:10px 12px;border-radius:10px}
+.chat{display:grid;gap:12px;max-width:860px}
+.chat-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px 16px;flex-wrap:wrap}
+.chat-head h2{font:650 clamp(22px,2.6vw,28px)/1.15 var(--f-display);margin:0}
+.chat-log{display:grid;gap:12px;padding:16px;min-height:260px;max-height:min(62vh,680px);overflow-y:auto;align-content:start}
+.turn{display:grid;gap:10px}
+.bubble{max-width:min(640px,92%);padding:10px 14px;border-radius:14px;overflow-wrap:anywhere;line-height:1.5}
+.bubble.me{justify-self:end;background:var(--accent);color:var(--accent-ink);border-bottom-right-radius:4px;white-space:pre-wrap}
+.bubble.athena{justify-self:start;background:var(--soft);border-bottom-left-radius:4px}
+.bubble.athena .md h2,.bubble.athena .md h3,.bubble.athena .md h4{font-size:16px;margin:8px 0 4px}
+.bubble.athena.failed{background:var(--danger-soft)}
+.bubble.athena.failed p{margin:4px 0}
+.bubble.note{justify-self:center;background:transparent;color:var(--muted);font-size:14px}
+.bubble .when{display:block;font:500 11px var(--f-mono);opacity:.7;margin-top:4px}
+.working{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:14px}
+.working .dots{display:inline-flex;gap:4px}
+.working .dots i{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:blink 1.2s infinite}
+.working .dots i:nth-child(2){animation-delay:.2s}.working .dots i:nth-child(3){animation-delay:.4s}
+@keyframes blink{50%{opacity:.25}}
+@media (prefers-reduced-motion: reduce){.working .dots i{animation:none}}
+.suggest{display:flex;flex-wrap:wrap;gap:6px}
+.suggest button{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 12px;font-size:13.5px;cursor:pointer;color:var(--ink)}
+.suggest button:hover{border-color:var(--accent)}
+.chat-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}
+.chat-form textarea{font-size:16px;min-height:52px;max-height:220px}
+.draft-ask{border-top:1px solid var(--line);padding-top:12px;display:grid;gap:8px;justify-items:start}
+.draft-ask .f{width:100%}
+.draft-ask p{margin:0}

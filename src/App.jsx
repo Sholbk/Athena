@@ -9,6 +9,7 @@ import Tasks from './pages/Tasks.jsx';
 import Week from './pages/Week.jsx';
 import Soon from './pages/Soon.jsx';
 import Marketing from './pages/Marketing.jsx';
+import Athena from './pages/Athena.jsx';
 import TaskDrawer from './components/TaskDrawer.jsx';
 import Owl from './components/Owl.jsx';
 
@@ -79,7 +80,7 @@ function Shell({ email }) {
           <Route path="/week" element={<Week store={store} onOpen={openTask} />} />
           <Route path="/marketing" element={<Marketing />} />
           <Route path="/eos" element={<Soon title="EOS" what="Rocks, Scorecard, Issues List and the Level 10 log, all editable here." />} />
-          <Route path="/athena" element={<Soon title="Talk to Athena" what="Ask Athena anything. She answers through Claude Code on your subscription, in a minute or two." />} />
+          <Route path="/athena" element={<Athena />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

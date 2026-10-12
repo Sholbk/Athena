@@ -1,0 +1,40 @@
+name: Athena
+
+# Answers messages from the Athena tab. The app saves a message to athena_requests and the
+# athena-dispatch edge function sends a repository_dispatch here. Runs Claude Code on
+# Stephanie's Claude subscription (CLAUDE_CODE_OAUTH_TOKEN). Changes land in Supabase;
+# the Vault sync workflow carries them to Obsidian.
+on:
+  repository_dispatch:
+    types: [athena]
+  workflow_dispatch:
+
+# One run at a time. Every run answers everything queued, so a dispatch that waits loses nothing.
+concurrency:
+  group: athena
+  cancel-in-progress: false
+
+jobs:
+  answer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Answer queued messages
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: python3 athena/answer.py
