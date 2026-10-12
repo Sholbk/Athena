@@ -142,7 +142,7 @@ def main():
         data = values(a.table, a.set, a.set_file)
         if not data:
             sys.exit('Nothing to change. Pass --set COL=VALUE.')
-        api('PATCH', f'{a.table}?id=eq.{row["id"]}', data)
+        api('PATCH', f'{a.table}?id=eq.{urllib.parse.quote(row["id"])}', data)
         print(json.dumps({'updated': row['id'], 'title': row['title'], 'changed': sorted(data)}))
     elif a.cmd == 'delete':
         table_ok(a.table, write=True)

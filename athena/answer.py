@@ -6,7 +6,7 @@ mark it running, build the prompt from the thread so far, run `claude -p`,
 and save the reply (or the error). Needs SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 and CLAUDE_CODE_OAUTH_TOKEN. Standard library only.
 """
-import datetime, json, os, subprocess, sys, urllib.request, urllib.error
+import datetime, json, os, subprocess, sys, traceback, urllib.error, urllib.parse, urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
@@ -21,9 +21,17 @@ def api(method, path, body=None):
     key = os.environ['SUPABASE_SERVICE_ROLE_KEY']
     h = {'apikey': key, 'Authorization': f'Bearer {key}', 'Content-Type': 'application/json', 'Prefer': 'return=representation'}
     r = urllib.request.Request(url, data=json.dumps(body).encode() if body is not None else None, method=method, headers=h)
-    with urllib.request.urlopen(r, timeout=60) as resp:
-        t = resp.read().decode()
-        return json.loads(t) if t else None
+    try:
+        with urllib.request.urlopen(r, timeout=60) as resp:
+            t = resp.read().decode()
+            return json.loads(t) if t else None
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f'Database said {e.code}: {e.read().decode()[:300]}') from None
+
+
+def q(value):
+    # Timestamps end in +00:00, and a bare + in a URL reads as a space.
+    return urllib.parse.quote(str(value), safe='')
 
 
 def now():
@@ -68,26 +76,43 @@ def run_claude(prompt):
     return None, err
 
 
+def answer(req):
+    history = api('GET', f'athena_requests?thread_id=eq.{q(req["thread_id"])}&status=eq.done'
+                         f'&created_at=lt.{q(req["created_at"])}&order=created_at.desc&limit={HISTORY}&select=message,reply')
+    history.reverse()
+    try:
+        return run_claude(build_prompt(req, history))
+    except subprocess.TimeoutExpired:
+        return None, 'Athena ran out of time on this one. Try asking in a smaller piece.'
+
+
 def main():
+    # A run that died mid-answer leaves rows at running. Put them back in line.
+    stale = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(minutes=25)).isoformat(timespec='seconds')
+    api('PATCH', f'athena_requests?status=eq.running&started_at=lt.{q(stale)}', {'status': 'queued'})
+
     queued = api('GET', 'athena_requests?status=eq.queued&order=created_at.asc&select=*')
     if not queued:
         print('Nothing queued.')
         return
+    failures = 0
     for req in queued:
-        api('PATCH', f'athena_requests?id=eq.{req["id"]}', {'status': 'running', 'started_at': now()})
-        history = api('GET', f'athena_requests?thread_id=eq.{req["thread_id"]}&status=eq.done'
-                             f'&created_at=lt.{req["created_at"]}&order=created_at.desc&limit={HISTORY}&select=message,reply')
-        history.reverse()
+        rid = q(req['id'])
+        api('PATCH', f'athena_requests?id=eq.{rid}', {'status': 'running', 'started_at': now()})
         print(f'Answering {req["id"]}')
         try:
-            reply, err = run_claude(build_prompt(req, history))
-        except subprocess.TimeoutExpired:
-            reply, err = None, 'Athena ran out of time on this one. Try asking in a smaller piece.'
+            reply, err = answer(req)
+        except Exception as e:  # never leave a message stuck at running
+            traceback.print_exc()
+            reply, err = None, f'Something broke on my side: {e}'
         if reply:
-            api('PATCH', f'athena_requests?id=eq.{req["id"]}', {'status': 'done', 'reply': reply, 'finished_at': now()})
+            api('PATCH', f'athena_requests?id=eq.{rid}', {'status': 'done', 'reply': reply, 'error': None, 'finished_at': now()})
         else:
+            failures += 1
             print(f'  failed: {err}', file=sys.stderr)
-            api('PATCH', f'athena_requests?id=eq.{req["id"]}', {'status': 'failed', 'error': err[:2000], 'finished_at': now()})
+            api('PATCH', f'athena_requests?id=eq.{rid}', {'status': 'failed', 'error': (err or 'Unknown error')[:2000], 'finished_at': now()})
+    if failures:
+        sys.exit(f'{failures} message(s) failed. Each one shows its error in the Athena tab.')
 
 
 if __name__ == '__main__':
