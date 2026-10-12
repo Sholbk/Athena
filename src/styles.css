@@ -228,3 +228,10 @@ ul.plain{margin:0;padding-left:18px} ul.plain li{margin:4px 0}
 .draft-ask{border-top:1px solid var(--line);padding-top:12px;display:grid;gap:8px;justify-items:start}
 .draft-ask .f{width:100%}
 .draft-ask p{margin:0}
+
+/* Brief card */
+.brief{background:var(--accent-soft);border-color:transparent}
+.brief .md{max-width:none}
+.brief .notice.soft{background:var(--card);margin-bottom:12px}
+.clip{position:relative;max-height:420px;overflow:hidden}
+.clip::after{content:"";position:absolute;inset:auto 0 0 0;height:80px;background:linear-gradient(transparent,var(--accent-soft))}

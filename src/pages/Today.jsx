@@ -5,6 +5,7 @@ import { addDays, diffDays, greeting, mondayOf, todayYMD } from '../lib/dates.js
 import { Panel, Skel, TaskRow, toggler } from '../components/bits.jsx';
 import AddTask from '../components/AddTask.jsx';
 import Split from '../components/Split.jsx';
+import BriefCard from '../components/BriefCard.jsx';
 
 export default function Today({ store, onOpen }) {
   const { tasks } = store;
@@ -39,6 +40,7 @@ export default function Today({ store, onOpen }) {
       </form>
       <div className="grid-today">
         <div className="col">
+          <BriefCard />
           <Panel title="Today" eyebrow={late.length ? `${late.length} late` : null}>
             {!tasks ? <Skel /> : (late.length + dueToday.length === 0
               ? <p className="empty">Nothing due today. Pick something from this week.</p>
