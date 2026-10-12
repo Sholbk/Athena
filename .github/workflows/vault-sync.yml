@@ -1,0 +1,56 @@
+name: Vault sync
+
+# Two-way sync between Supabase and the Obsidian vault (Sholbk/athena-vault).
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Only show what would change'
+        type: boolean
+        default: false
+
+concurrency:
+  group: vault-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check out the vault
+        uses: actions/checkout@v4
+        with:
+          repository: Sholbk/athena-vault
+          token: ${{ secrets.VAULT_TOKEN }}
+          path: vault
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Sync
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 sync/sync.py --vault vault ${{ inputs.dry_run && '--dry-run' || '' }}
+
+      - name: Save vault changes
+        if: ${{ !inputs.dry_run }}
+        working-directory: vault
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git config user.name "Athena"
+            git config user.email "noreply@anthropic.com"
+            git add -A
+            git commit -q -m "Sync from the Athena app"
+            git pull --rebase -q origin main
+            git push -q origin HEAD:main
+          else
+            echo "Vault already up to date."
+          fi
