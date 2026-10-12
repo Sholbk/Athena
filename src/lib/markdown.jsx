@@ -52,6 +52,21 @@ export function Markdown({ text }) {
       i++; continue;
     }
     if (/^\s*(-{3,}|\*{3,})\s*$/.test(ln)) { blocks.push(<hr key={key} />); i++; continue; }
+    // A table: a | row followed by a | --- | separator row.
+    if (/^\s*\|.*\|\s*$/.test(ln) && i + 1 < lines.length && /^\s*\|[\s:|-]+\|\s*$/.test(lines[i + 1])) {
+      const cells = (row) => row.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
+      const header = cells(ln);
+      const body = [];
+      i += 2;
+      while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) { body.push(cells(lines[i])); i++; }
+      blocks.push(
+        <div key={key} className="md-table"><table>
+          <thead><tr>{header.map((c, j) => <th key={j}>{inline(c, `${key}-h${j}`)}</th>)}</tr></thead>
+          <tbody>{body.map((r, ri) => <tr key={ri}>{header.map((_, j) => <td key={j}>{inline(r[j] ?? '', `${key}-${ri}-${j}`)}</td>)}</tr>)}</tbody>
+        </table></div>
+      );
+      continue;
+    }
     if (/^\s*>/.test(ln)) {
       const q = [];
       while (i < lines.length && /^\s*>/.test(lines[i])) { q.push(lines[i].replace(/^\s*>\s?/, '')); i++; }
@@ -77,7 +92,7 @@ export function Markdown({ text }) {
       continue;
     }
     const para = [];
-    while (i < lines.length && lines[i].trim() && !/^(#{1,4}\s|\s*>|\s*[-*•]\s|\s*\d+[.)]\s|\s*-{3,}\s*$)/.test(lines[i])) {
+    while (i < lines.length && lines[i].trim() && !/^(#{1,4}\s|\s*>|\s*[-*•]\s|\s*\d+[.)]\s|\s*-{3,}\s*$|\s*\|)/.test(lines[i])) {
       para.push(lines[i]); i++;
     }
     if (!para.length) { para.push(ln); i++; }
