@@ -20,6 +20,7 @@ export const extOf = (row) => EXT[row.mime] || 'bin';
 export const tagList = (text) => [...new Set(String(text || '').split(',').map((t) => t.trim()).filter(Boolean))];
 
 export function sizeText(bytes) {
+  if (!bytes) return '0 MB';
   if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
   if (bytes >= 1024 ** 2) return `${Math.round(bytes / 1024 ** 2)} MB`;
   return `${Math.max(1, Math.round(bytes / 1024))} KB`;
