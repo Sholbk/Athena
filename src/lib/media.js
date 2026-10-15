@@ -95,25 +95,28 @@ export function usePieceMedia(contentId, refresh) {
 
 // Uploads a batch one file at a time. A file that cannot be used is skipped with a reason;
 // it never stops the rest. Returns { added, skipped: [{ name, why }] }.
+// Each entry is a File, or { file, title, notes, tags, source_url } for a file from somewhere
+// else, such as WonderReel.
 export async function uploadFiles(files, { shelf, tags }, onProgress = () => {}) {
   let added = 0;
   const skipped = [];
   for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    onProgress(i + 1, files.length, file.name);
+    const entry = files[i] instanceof Blob ? { file: files[i] } : files[i];
+    const file = entry.file;
+    onProgress(i + 1, files.length, entry.title || file.name);
     try {
       const item = await prepare(file, shelf);
       if (item.main.size > MAX_FILE) throw new Error(`over 50 MB (${sizeText(item.main.size)}), the most the free plan takes for one file`);
-      await store(item, file, shelf, tags);
+      await store(item, entry, shelf, entry.tags || tags);
       added++;
     } catch (e) {
-      skipped.push({ name: file.name, why: e.message });
+      skipped.push({ name: entry.title || file.name, why: e.message });
     }
   }
   return { added, skipped };
 }
 
-async function store(item, file, shelf, tags) {
+async function store(item, { file, title, notes, source_url }, shelf, tags) {
   const id = crypto.randomUUID();
   const path = `${shelf}/${id}.${EXT[item.type]}`;
   const thumbPath = item.thumb ? `thumbs/${id}.jpg` : null;
@@ -122,7 +125,7 @@ async function store(item, file, shelf, tags) {
     if (item.thumb) { await put(thumbPath, item.thumb, 'image/jpeg'); done.push(thumbPath); }
     await put(path, item.main, item.type); done.push(path);
     const { error } = await supabase.from('media').insert({
-      shelf, title: file.name.replace(/\.[^.]+$/, '') || 'Untitled', tags,
+      shelf, title: title || file.name.replace(/\.[^.]+$/, '') || 'Untitled', tags, notes: notes || null, source_url: source_url || null,
       path, thumb_path: thumbPath, mime: item.type,
       bytes: item.main.size + (item.thumb ? item.thumb.size : 0), width: item.width || null, height: item.height || null,
     });
@@ -205,6 +208,49 @@ function videoPreview(file) {
     };
     v.src = url;
   });
+}
+
+// Her newest WonderReel images and videos (at most 20), through the wonderreel-gallery edge
+// function, which holds her WonderReel link. Each has { id, kind, model, prompt, url }.
+export async function wonderreelGallery(kind = 'all') {
+  const { data, error } = await supabase.functions.invoke('wonderreel-gallery', { body: { kind } });
+  if (error) {
+    let why = error.message;
+    try { why = (await error.context?.json?.())?.error || why; } catch {}
+    throw new Error(why);
+  }
+  return data.items || [];
+}
+export const wonderreelSource = (id) => `wonderreel:${id}`;
+
+// Copies WonderReel items into the library. Their links are temporary, so this keeps them.
+export async function importWonderreel(items, shelf, onProgress) {
+  const entries = [];
+  const failed = [];
+  for (const it of items) {
+    try {
+      const r = await fetch(it.url);
+      if (!r.ok) throw new Error(`WonderReel's file link said ${r.status}`);
+      const blob = await r.blob();
+      const type = blob.type || (it.kind === 'video' ? 'video/mp4' : 'image/png');
+      const title = titleFrom(it.prompt) || `WonderReel ${it.kind}`;
+      entries.push({
+        file: new File([blob], `${title}.${EXT[type] || 'bin'}`, { type }), title,
+        notes: [`Made in WonderReel${it.model ? ` with ${it.model}` : ''}.`, it.prompt ? `Prompt: ${it.prompt}` : ''].filter(Boolean).join(' '),
+        tags: ['wonderreel'], source_url: wonderreelSource(it.id),
+      });
+    } catch (e) {
+      failed.push({ name: titleFrom(it.prompt) || it.id, why: e.message || 'could not download it' });
+    }
+  }
+  const res = await uploadFiles(entries, { shelf, tags: ['wonderreel'] }, onProgress);
+  return { added: res.added, skipped: [...failed, ...res.skipped] };
+}
+
+// "Black and white coloring book page, clean bold..." -> "Black and white coloring book page"
+function titleFrom(prompt) {
+  const first = String(prompt || '').split(/[.,:;\n]/)[0].trim();
+  return first.length > 60 ? `${first.slice(0, 57).replace(/\s+\S*$/, '')}…` : first;
 }
 
 // Short-lived link to the full file, to show it or to save it.

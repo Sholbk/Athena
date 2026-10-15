@@ -13,7 +13,10 @@ export default function Settings() {
       <div className="week-head"><div><p className="eyebrow">Settings</p><h2>Athena's schedule and your calendar</h2></div></div>
       <div className="settings">
         <Jobs />
-        <Calendars />
+        <div className="settings-side">
+          <Calendars />
+          <WonderReel />
+        </div>
       </div>
     </section>
   );
@@ -172,6 +175,59 @@ function Calendars() {
         </ol>
       </details>
       {err && <p className="form-msg">{err}</p>}
+    </Panel>
+  );
+}
+
+/* ---------- WonderReel ---------- */
+// Her WonderReel connect link lets Media import her newest WonderReel work. It holds her personal
+// WonderReel key, so it is saved but never read back into the page.
+function WonderReel() {
+  const [linked, setLinked] = useState(undefined);
+  const [url, setUrl] = useState('');
+  const [msg, setMsg] = useState('');
+  const [note, setNote] = useState('');
+  const load = useCallback(async () => {
+    const { data, error } = await supabase.from('connections').select('key,updated_at').eq('key', 'wonderreel').maybeSingle();
+    if (error) setMsg(error.message); else setLinked(data);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const save = async (e) => {
+    e.preventDefault(); setMsg(''); setNote('');
+    const link = url.trim();
+    if (!/^https:\/\/wonderreel\.io\/mcp\/\S+$/.test(link)) return setMsg('Paste the connect URL from WonderReel. It starts with https://wonderreel.io/mcp/');
+    const { error } = await supabase.from('connections').upsert({ key: 'wonderreel', url: link, updated_at: new Date().toISOString() });
+    if (error) return setMsg(error.message);
+    setUrl(''); setNote('Saved. Media can now import from WonderReel.'); load();
+  };
+  const remove = async () => {
+    if (!confirm('Disconnect WonderReel? Files you already imported stay in Media.')) return;
+    const { error } = await supabase.from('connections').delete().eq('key', 'wonderreel');
+    setNote('');
+    if (error) setMsg(error.message); else { setNote('Disconnected.'); load(); }
+  };
+
+  return (
+    <Panel title="WonderReel" eyebrow="Import only">
+      <p className="muted small" style={{ marginTop: 0 }}>Connect WonderReel so Marketing, Media can import your newest images and videos. Athena only lists and copies them. It never makes anything in WonderReel, so it never uses your credits.</p>
+      {linked === undefined ? <Skel /> : linked
+        ? <div className="job"><div className="job-main"><span className="card-title">Connected</span><span className="small muted">Since {fWhen.format(new Date(linked.updated_at))}</span></div><button className="linkbtn danger" type="button" onClick={remove}>Disconnect</button></div>
+        : <p className="empty">Not connected yet.</p>}
+      <form className="cal-add wr-add" onSubmit={save}>
+        <label className="f">{linked ? 'Replace the connect URL' : 'Your WonderReel connect URL'}<input type="password" autoComplete="off" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://wonderreel.io/mcp/…" /></label>
+        <button className="btn" type="submit" disabled={!url.trim()}>Save</button>
+      </form>
+      <details className="small muted">
+        <summary>Where to find it</summary>
+        <ol>
+          <li>In WonderReel, click your email at the top left to open Settings.</li>
+          <li>Find <b>Claude MCP Access (Pro)</b>. Under <b>Step 2</b>, click <b>Copy URL</b>.</li>
+          <li>Paste it above and click Save. It holds your WonderReel key, so it stays hidden here.</li>
+        </ol>
+      </details>
+      {note && <p className="small">{note}</p>}
+      {msg && <p className="form-msg">{msg}</p>}
     </Panel>
   );
 }

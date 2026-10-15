@@ -58,7 +58,7 @@ main{padding-block:20px 56px}
 .btn.small{padding:5px 10px;font-size:13.5px} .btn.big{padding:12px 22px;font-size:17px}
 .linkbtn{background:none;border:0;padding:0;cursor:pointer;color:var(--accent);font-weight:700;font-size:14px}
 .linkbtn:hover{text-decoration:underline} .linkbtn.danger{color:var(--danger)}
-input[type=text],input[type=search],input[type=date],input[type=number],select,textarea{font-size:15px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:0;max-width:100%;color:var(--ink)}
+input[type=text],input[type=password],input[type=search],input[type=date],input[type=number],select,textarea{font-size:15px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:0;max-width:100%;color:var(--ink)}
 textarea{width:100%;resize:vertical;line-height:1.5}
 input:focus,select:focus,textarea:focus{border-color:var(--accent);outline:none}
 label.f{display:grid;gap:4px;font-size:13px;font-weight:700;color:var(--muted);min-width:0}
@@ -281,6 +281,8 @@ table.sc tr.foot td{color:var(--muted);font-size:12.5px}
 .cal-add{display:grid;gap:10px;margin:12px 0}
 @media (min-width:700px){.cal-add{grid-template-columns:minmax(0,.6fr) minmax(0,1.6fr) auto;align-items:end}}
 .cal-add input{width:100%}
+.settings-side{display:grid;gap:16px;align-content:start}
+@media (min-width:700px){.wr-add{grid-template-columns:minmax(0,1fr) auto}}
 details ol{padding-left:20px;margin:8px 0 0}
 details summary{cursor:pointer;font-weight:700}
 .cal-events{display:grid;gap:4px;margin-bottom:6px}
@@ -316,6 +318,15 @@ details summary{cursor:pointer;font-weight:700}
 .find-ideas > div{flex:1 1 280px;min-width:0}
 .find-ideas p{margin:4px 0 0;color:var(--ink)}
 .find-ideas .md p{margin:4px 0 0}
+
+/* Import from WonderReel */
+.wr-tile{cursor:pointer}
+.wr-tile video{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;background:var(--soft);display:block}
+.wr-tile.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+.wr-tile.done{opacity:.6;cursor:default}
+.wr-check{display:flex;gap:6px;align-items:center;font-size:13px;font-weight:700}
+.wr-tile .pill{justify-self:start}
+.wr-shelf{min-width:180px}
 
 /* A post's images in its drawer */
 .piece-media{display:grid;gap:10px;border-top:1px solid var(--line);padding-top:12px}
