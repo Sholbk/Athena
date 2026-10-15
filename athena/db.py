@@ -8,7 +8,8 @@
   python3 athena/db.py delete TABLE ID
 
 Tables: tasks, briefs, money, content, pages (read and write);
-rocks, scorecard, issues, l10 (Metis owns these: read only).
+rocks, scorecard, issues, l10 (Metis owns these: read only, except inside a Level 10,
+when answer.py sets ATHENA_METIS=1). scorecard metrics take JSON.
 Output is JSON. Changes reach the app at once and Obsidian on the next sync.
 Standard library only.
 """
@@ -21,7 +22,15 @@ WRITABLE = {
     'content': ['title', 'status', 'channel', 'product', 'target_date', 'cta', 'notes', 'body'],
     'pages': ['title', 'folder', 'body'],
 }
-READ_ONLY = {'rocks', 'scorecard', 'issues', 'l10'}
+METIS = {
+    'rocks': ['title', 'quarter', 'status', 'owner', 'due', 'athena_tasks', 'notes', 'body'],
+    'scorecard': ['title', 'week_ending', 'metrics', 'body'],
+    'issues': ['title', 'priority', 'status', 'owner', 'raised', 'solved_on', 'solution', 'body'],
+    'l10': ['title', 'meeting_date', 'rating', 'issue_solved', 'body'],
+}
+if os.environ.get('ATHENA_METIS') == '1':
+    WRITABLE.update(METIS)
+READ_ONLY = set(METIS) - set(WRITABLE)
 OPEN = {
     'tasks': 'status=not.in.(Done,Dropped)',
     'money': 'status=not.in.(Paid,Won,Lost)',
@@ -29,8 +38,15 @@ OPEN = {
     'issues': 'status=eq.Open',
     'rocks': 'status=neq.Done',
 }
+# Newest or most urgent first, so --limit keeps the rows that matter.
+ORDER = {
+    'tasks': 'due.asc.nullslast', 'briefs': 'created_at.desc', 'money': 'due.asc.nullslast',
+    'content': 'target_date.asc.nullslast', 'pages': 'title.asc', 'rocks': 'due.asc.nullslast',
+    'scorecard': 'week_ending.desc.nullslast', 'issues': 'priority.asc.nullslast', 'l10': 'meeting_date.desc.nullslast',
+}
 HIDE = {'extra', 'synced_hash', 'synced_at', 'deleted_at', 'vault_path'}
-ARRAYS = {'serves_rock'}
+ARRAYS = {'serves_rock', 'athena_tasks'}
+JSONS = {'metrics'}
 
 
 def api(method, path, body=None):
@@ -58,7 +74,7 @@ def clean(rows, fields=None):
 
 def table_ok(t, write=False):
     if t not in WRITABLE and t not in READ_ONLY:
-        sys.exit(f'Unknown table {t}. Use one of: {", ".join(list(WRITABLE) + sorted(READ_ONLY))}')
+        sys.exit(f'Unknown table {t}. Use one of: {", ".join(sorted(set(WRITABLE) | READ_ONLY))}')
     if write and t in READ_ONLY:
         sys.exit(f'{t} belongs to Metis. Athena reads it but never changes it.')
 
@@ -79,6 +95,11 @@ def values(t, sets, set_files):
             data[k] = [] if k in ARRAYS else None
         elif k in ARRAYS:
             data[k] = [x.strip() for x in data[k].split('|') if x.strip()]
+        elif k in JSONS:
+            try:
+                data[k] = json.loads(data[k])
+            except ValueError:
+                sys.exit(f'{k} must be JSON, like {{"Waitlist total": 120}}')
     return data
 
 
@@ -111,7 +132,7 @@ def main():
 
     if a.cmd == 'ls':
         table_ok(a.table)
-        parts = ['deleted_at=is.null', 'select=*', f'limit={a.limit}']
+        parts = ['deleted_at=is.null', 'select=*', f'limit={a.limit}', f'order={ORDER[a.table]}']
         if a.open and a.table in OPEN:
             parts.append(OPEN[a.table])
         for w in a.where or []:
