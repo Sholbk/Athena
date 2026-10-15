@@ -10,7 +10,7 @@ Supabase project: `dgjbzkslgjqsopjzzeqy` (named Athena).
 | Area | State |
 | --- | --- |
 | Google sign-in, owner allowlist | Done |
-| Two-way Obsidian vault sync (`sync/sync.py`, Vault sync workflow; scheduled every 15 min, GitHub often runs it hours apart) | Done, running |
+| Two-way Obsidian vault sync (`sync/sync.py`, Vault sync workflow). The database clock starts it every 15 min (`athena_vault_sync`, signed with Vault key `athena_cron_key`); GitHub's own schedule is the backup | Done, running |
 | Today, Tasks, Week | Done |
 | Daily brief card on Today | Done |
 | Marketing: pipeline, calendar, idea bank, brand files | Done |
@@ -39,7 +39,8 @@ How it runs: `pg_cron` calls `athena_tick()` every 5 minutes. A job fires once a
 
 - Instructions live in `athena_jobs.prompt`, edited in the app under Settings. They are not in this repo because they carry private business detail.
 - Times, days and on/off are in Settings too.
-- Vault secrets `athena_project_url` and `athena_anon_key` let the database call the edge function.
+- Vault secrets `athena_project_url` and `athena_anon_key` let the database call the edge function; `athena_cron_key` signs its vault sync calls.
+- On Stephanie's Mac, Obsidian opens `~/Documents/GitHub/athena-vault` and the Obsidian Git plugin pulls and pushes every 5 minutes.
 - Calendar: private Google Calendar iCal links in `calendar_feeds` (Settings). The briefs read them in `athena/calendar_feed.py`; the Week page reads them through the `calendar-events` edge function. The links are never shown back in the app.
 
 ## Known limits
