@@ -264,3 +264,21 @@ table.sc tr.foot td{color:var(--muted);font-size:12.5px}
 .md-table table{border-collapse:collapse;font-size:14px;min-width:60%}
 .md-table th,.md-table td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}
 .md-table th{background:var(--soft);font-weight:700}
+
+/* Settings: Athena's schedule and calendar links */
+.settings{display:grid;gap:16px}
+@media (min-width:960px){.settings{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);align-items:start}}
+.jobs{display:grid;gap:2px;margin:6px 0 10px}
+.job{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line)}
+.job:first-child{border-top:0}
+.job-main{display:grid;gap:3px;min-width:0;flex:1 1 240px}
+.switch{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;font-weight:700;color:var(--muted);cursor:pointer}
+.switch input{width:18px;height:18px;accent-color:var(--accent)}
+.cal-add{display:grid;gap:10px;margin:12px 0}
+@media (min-width:700px){.cal-add{grid-template-columns:minmax(0,.6fr) minmax(0,1.6fr) auto;align-items:end}}
+.cal-add input{width:100%}
+details ol{padding-left:20px;margin:8px 0 0}
+details summary{cursor:pointer;font-weight:700}
+.cal-events{display:grid;gap:4px;margin-bottom:6px}
+.cal-ev{font-size:13px;padding:4px 8px;border-radius:6px;background:var(--accent-soft);color:var(--ink);overflow-wrap:anywhere}
+.cal-ev b{font-family:var(--f-mono);font-size:12px;font-weight:600;margin-right:4px;color:var(--muted)}
