@@ -30,14 +30,16 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install Claude Code and the calendar reader
+      - name: Install Claude Code, the calendar reader and the image tools
         run: |
           npm install -g @anthropic-ai/claude-code
-          pip install --quiet icalendar==6.3.2 recurring-ical-events==3.8.2
+          pip install --quiet icalendar==6.3.2 recurring-ical-events==3.8.2 pillow==11.3.0
 
       - name: Answer queued messages and run queued jobs
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Lets Athena make post images in Blotato (athena/POSTS.md). Never used to post.
+          BLOTATO_API_KEY: ${{ secrets.BLOTATO_API_KEY }}
         run: python3 athena/answer.py
