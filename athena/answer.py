@@ -116,7 +116,7 @@ def chat_prompt(req, history, job):
     if job:  # a meeting, such as the Level 10 with Metis
         guide = job['prompt'] + '\n\n' + read('JOBS.md')
     else:
-        guide = read('PROMPT.md') + '\n\n' + calendar_for(None)
+        guide = read('PROMPT.md') + '\n\n' + read('CALLS.md') + '\n\n' + calendar_for(None)
     convo = conversation(history, 'Metis' if job else 'Athena')
     return f'{guide}\n\nRight now it is {mountain_now()}.\n\n{convo}Stephanie\'s new message:\n\n{req["message"]}'
 
@@ -130,7 +130,7 @@ def report_prompt(job):
         hand_back += ('\n\nAfter it, end with one fenced json block, which the app reads and removes:\n\n'
                       '```json\n{"client_hours": number or null, "colibrios_hours": number or null, '
                       '"decision_needed": "one line, or null", "gone_quiet": "one line, or null", "carry_over": "one line, or null"}\n```')
-    return (f'{job["prompt"]}\n\n{read("JOBS.md")}\n\n{hand_back}\n\n'
+    return (f'{job["prompt"]}\n\n{read("JOBS.md")}\n\n{read("CALLS.md")}\n\n{hand_back}\n\n'
             f'Right now it is {mountain_now()}.\n\n{calendar_for(job["key"])}')
 
 

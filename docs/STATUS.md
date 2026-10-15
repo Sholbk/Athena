@@ -18,6 +18,7 @@ Supabase project: `dgjbzkslgjqsopjzzeqy` (named Athena).
 | EOS: Rocks, Scorecard, Issues, Level 10, V/TO | Done |
 | Athena's jobs in the app, Settings (schedule, instructions, calendar links), calendar on Week | Done Oct 14 |
 | Library tab: the AI Bootcamp notes from the vault's `AI Bootcamp` folder, to search and read (edits happen in Obsidian) | Done Oct 15 |
+| Call to-dos: Granola calls sync into the vault's `Meetings` folder (Obsidian plugin). Athena turns her to-dos into tasks (rules in `athena/CALLS.md`, log page "Calls read"), each weekday morning before the brief or when asked in chat | Done Oct 15 |
 
 ## Secrets in place
 
