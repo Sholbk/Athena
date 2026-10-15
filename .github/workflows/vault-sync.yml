@@ -1,7 +1,11 @@
 name: Vault sync
 
 # Two-way sync between Supabase and the Obsidian vault (Sholbk/athena-vault).
+# The database clock sends a vault-sync event every 15 minutes, because GitHub's own
+# schedule below fires hours apart. The schedule stays as a backup.
 on:
+  repository_dispatch:
+    types: [vault-sync]
   schedule:
     - cron: '*/15 * * * *'
   workflow_dispatch:
