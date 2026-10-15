@@ -17,6 +17,7 @@ Supabase project: `dgjbzkslgjqsopjzzeqy` (named Athena).
 | Athena chat and "Ask Athena to draft this" (`athena/`, Athena workflow, `athena-dispatch` edge function) | Done, tested end to end Oct 12 |
 | EOS: Rocks, Scorecard, Issues, Level 10, V/TO | Done |
 | Athena's jobs in the app, Settings (schedule, instructions, calendar links), calendar on Week | Done Oct 14 |
+| Library tab: the AI Bootcamp notes from the vault's `AI Bootcamp` folder, to search and read (edits happen in Obsidian) | Done Oct 15 |
 
 ## Secrets in place
 
