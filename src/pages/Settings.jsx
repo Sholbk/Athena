@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase.js';
+import { SUPABASE_URL, supabase } from '../lib/supabase.js';
 import { DAY_NAMES, runJob, scheduleText, useJobs } from '../lib/jobs.js';
 import { Panel, Skel } from '../components/bits.jsx';
 
@@ -15,6 +15,8 @@ export default function Settings() {
         <Jobs />
         <div className="settings-side">
           <Calendars />
+          <PostingDays />
+          <GoogleCalendar />
           <WonderReel />
         </div>
       </div>
@@ -228,6 +230,145 @@ function WonderReel() {
       </details>
       {note && <p className="small">{note}</p>}
       {msg && <p className="form-msg">{msg}</p>}
+    </Panel>
+  );
+}
+
+function CopyLine({ value, label = 'Copy' }) {
+  const [said, setSaid] = useState('');
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(value); setSaid('Copied'); } catch { setSaid('Select it and copy'); }
+    setTimeout(() => setSaid(''), 2500);
+  };
+  return (
+    <div className="copy-line">
+      <input type="text" readOnly value={value} onFocus={(e) => e.target.select()} aria-label={label} />
+      <button className="btn ghost small" type="button" onClick={copy}>{said || label}</button>
+    </div>
+  );
+}
+
+/* ---------- Posting days ---------- */
+// A private calendar link Google Calendar subscribes to: each post with a target date shows on
+// that day (edge function athena-calendar-feed). Google only reads it.
+function PostingDays() {
+  const [token, setToken] = useState(undefined);
+  const [msg, setMsg] = useState('');
+  const load = useCallback(async () => {
+    const { data, error } = await supabase.from('connections').select('data').eq('key', 'calendar_feed').maybeSingle();
+    if (error) setMsg(error.message); else setToken(data?.data?.token || null);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+  const make = async () => {
+    if (token && !confirm('Make a new link? The old one stops working, so Google Calendar needs the new one.')) return;
+    const bytes = crypto.getRandomValues(new Uint8Array(24));
+    const next = btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const { error } = await supabase.from('connections').upsert({ key: 'calendar_feed', data: { token: next }, updated_at: new Date().toISOString() });
+    if (error) setMsg(error.message); else { setMsg(''); setToken(next); }
+  };
+  const link = token && `${SUPABASE_URL}/functions/v1/athena-calendar-feed?k=${token}`;
+  return (
+    <Panel title="Posting days in Google Calendar" eyebrow="Your posts on your calendar">
+      <p className="muted small" style={{ marginTop: 0 }}>Every post with a target date shows on that day in your Google Calendar, with the caption inside. Google checks for changes every few hours. It only reads: nothing in your calendar changes your posts.</p>
+      {token === undefined ? <Skel /> : !token
+        ? <button className="btn" type="button" onClick={make}>Make my calendar link</button>
+        : (
+          <>
+            <CopyLine value={link} label="Copy link" />
+            <details className="small muted">
+              <summary>Add it to Google Calendar</summary>
+              <ol>
+                <li>Open Google Calendar on a computer.</li>
+                <li>On the left, next to <b>Other calendars</b>, click <b>+</b>, then <b>From URL</b>.</li>
+                <li>Paste the link and click <b>Add calendar</b>. It shows up as "Athena posts".</li>
+              </ol>
+            </details>
+            <button className="linkbtn quiet" type="button" onClick={make}>Make a new link</button>
+          </>
+        )}
+      {msg && <p className="form-msg">{msg}</p>}
+    </Panel>
+  );
+}
+
+/* ---------- Google Calendar: Athena adds events ---------- */
+// Her own Google OAuth client, then a one-time Google sign-in. Athena then adds events when she
+// asks (athena/gcal.py, edge function google-oauth). The secret parts are never read back.
+const GOOGLE_RESULT = {
+  connected: 'Connected. Ask Athena in chat to put something on your calendar.',
+  declined: 'Google was not connected: the sign-in was cancelled.',
+  expired: 'That sign-in took too long or was already used. Click Connect Google Calendar again.',
+  'bad-client': 'Google did not accept the Client ID and secret. Paste them again, then connect.',
+  'no-client': 'Save your Client ID and secret first, then connect.',
+  error: 'Google did not finish connecting. Try Connect Google Calendar again.',
+};
+function GoogleCalendar() {
+  const [g, setG] = useState(undefined);
+  const [f, setF] = useState({ id: '', secret: '' });
+  const [msg, setMsg] = useState(() => GOOGLE_RESULT[new URLSearchParams(window.location.search).get('google')] || '');
+  const redirect = `${SUPABASE_URL}/functions/v1/google-oauth`;
+  const load = useCallback(async () => {
+    // Only the parts that are safe to show: never the secret or the refresh token.
+    const { data, error } = await supabase.from('connections')
+      .select('client_id:data->>client_id,email:data->>email,connected_at:data->>connected_at').eq('key', 'google').maybeSingle();
+    if (error) setMsg(error.message); else setG(data);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const save = async (e) => {
+    e.preventDefault();
+    const id = f.id.trim(), secret = f.secret.trim();
+    if (!/\.apps\.googleusercontent\.com$/.test(id)) return setMsg('The Client ID ends in .apps.googleusercontent.com.');
+    if (secret.length < 10) return setMsg('Paste the Client secret too.');
+    const { error } = await supabase.from('connections').upsert({ key: 'google', data: { client_id: id, client_secret: secret }, updated_at: new Date().toISOString() });
+    if (error) return setMsg(error.message);
+    setF({ id: '', secret: '' }); setMsg('Saved. Now click Connect Google Calendar.'); load();
+  };
+  const connect = async () => {
+    const state = crypto.randomUUID();
+    const { error } = await supabase.from('connections').upsert({ key: 'google_state', data: { state, at: Date.now() }, updated_at: new Date().toISOString() });
+    if (error) return setMsg(error.message);
+    const q = new URLSearchParams({
+      client_id: g.client_id, redirect_uri: redirect, response_type: 'code', access_type: 'offline', prompt: 'consent',
+      scope: 'openid email https://www.googleapis.com/auth/calendar.events', state,
+    });
+    window.location.assign(`https://accounts.google.com/o/oauth2/v2/auth?${q}`);
+  };
+  const remove = async () => {
+    if (!confirm('Disconnect Google Calendar? Athena will stop adding events. Events already added stay.')) return;
+    const { error } = await supabase.from('connections').delete().eq('key', 'google');
+    if (error) setMsg(error.message); else { setMsg('Disconnected.'); load(); }
+  };
+
+  return (
+    <Panel title="Google Calendar: Athena adds events" eyebrow="When you ask">
+      <p className="muted small" style={{ marginTop: 0 }}>Ask Athena in chat, such as "put a 30 minute call on Tuesday at 2 PM on my calendar", and she adds it. She only adds events. She never changes or deletes one.</p>
+      {g === undefined ? <Skel /> : g?.connected_at ? (
+        <div className="job"><div className="job-main"><span className="card-title">Connected{g.email ? ` as ${g.email}` : ''}</span><span className="small muted">Since {fWhen.format(new Date(g.connected_at))}</span></div>
+          <div className="btn-row"><button className="linkbtn" type="button" onClick={connect}>Reconnect</button><button className="linkbtn danger" type="button" onClick={remove}>Disconnect</button></div></div>
+      ) : g?.client_id ? (
+        <div className="btn-row"><button className="btn" type="button" onClick={connect}>Connect Google Calendar</button><button className="linkbtn quiet" type="button" onClick={() => setG(null)}>Use a different Client ID</button></div>
+      ) : (
+        <>
+          <details className="small muted" open>
+            <summary>One-time setup in Google Cloud</summary>
+            <ol>
+              <li>Go to <a href="https://console.cloud.google.com/projectcreate" target="_blank" rel="noopener noreferrer">console.cloud.google.com</a> and create a project named Athena.</li>
+              <li>Turn on the <b>Google Calendar API</b> for it.</li>
+              <li>Under <b>Google Auth Platform</b>, set up the app: name Athena, audience <b>External</b>. Then under <b>Audience</b>, click <b>Publish app</b>, so the connection does not expire every 7 days.</li>
+              <li>Under <b>Clients</b>, create a <b>Web application</b> client. Add this as an authorized redirect URI:</li>
+            </ol>
+            <CopyLine value={redirect} label="Copy" />
+            <ol start="5"><li>Paste the Client ID and Client secret below and click Save.</li></ol>
+          </details>
+          <form className="g-add" onSubmit={save}>
+            <label className="f">Client ID<input type="text" autoComplete="off" value={f.id} onChange={(e) => setF({ ...f, id: e.target.value })} placeholder="…apps.googleusercontent.com" /></label>
+            <label className="f">Client secret<input type="password" autoComplete="off" value={f.secret} onChange={(e) => setF({ ...f, secret: e.target.value })} /></label>
+            <button className="btn" type="submit" disabled={!f.id.trim() || !f.secret.trim()}>Save</button>
+          </form>
+        </>
+      )}
+      {msg && <p className={/^(Connected|Saved|Disconnected)/.test(msg) ? 'small' : 'form-msg'}>{msg}</p>}
     </Panel>
   );
 }

@@ -29,7 +29,8 @@ JOB_TIMEOUT = 25 * 60    # seconds per report job
 
 ALLOWED_TOOLS = ['Read', 'Write', 'Glob', 'Grep', 'Bash(python3 athena/db.py:*)',
                  'Bash(python3 athena/blotato.py:*)', 'Bash(python3 athena/media.py:*)',
-                 'Bash(python3 athena/ideas.py:*)', 'Bash(python3 athena/site.py:*)']
+                 'Bash(python3 athena/ideas.py:*)', 'Bash(python3 athena/site.py:*)',
+                 'Bash(python3 athena/gcal.py:*)']
 BRIEF_TYPES = {'monday_plan': 'Monday plan', 'friday_wrap': 'Friday wrap'}
 FIELDS = ['client_hours', 'colibrios_hours', 'decision_needed', 'gone_quiet', 'carry_over']
 
