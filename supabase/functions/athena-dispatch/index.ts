@@ -1,5 +1,8 @@
-// Starts the Athena workflow on GitHub after the app queues a message.
-// The caller's own login is used to read the request, so only Stephanie can trigger a run.
+// Starts the Athena workflow on GitHub after the app queues a message or a job.
+// Two callers:
+//   - the app, with Stephanie's login. Her login is used to read the request, so only she can start a run.
+//   - the database clock (athena_tick, through pg_net), with the public anon key. That caller can only
+//     start a run for a scheduled job request that is still queued and was made in the last 15 minutes.
 // Needs one secret set in Supabase (Edge Functions > Secrets): GITHUB_DISPATCH_TOKEN,
 // a fine-grained GitHub token with Contents read and write on Sholbk/Athena.
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
@@ -27,8 +30,8 @@ Deno.serve(async (req) => {
   const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
     global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } },
   });
-  const { data, error } = await supabase.from('athena_requests').select('id,status').eq('id', requestId).maybeSingle();
-  if (error || !data) return json(404, { error: 'No such request for this account.' });
+  const { data } = await supabase.from('athena_requests').select('id').eq('id', requestId).maybeSingle();
+  if (!data && !(await isFreshJob(requestId))) return json(404, { error: 'No such request for this account.' });
 
   const gh = await fetch(`https://api.github.com/repos/${REPO}/dispatches`, {
     method: 'POST',
@@ -43,3 +46,12 @@ Deno.serve(async (req) => {
   if (!gh.ok) return json(502, { error: `GitHub said ${gh.status}: ${(await gh.text()).slice(0, 300)}` });
   return json(200, { ok: true });
 });
+
+// A scheduled job the database clock just queued.
+async function isFreshJob(id: string) {
+  const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+  const since = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+  const { data } = await admin.from('athena_requests').select('id')
+    .eq('id', id).eq('status', 'queued').not('job', 'is', null).gte('created_at', since).maybeSingle();
+  return !!data;
+}

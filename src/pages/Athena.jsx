@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase.js';
 import { askAthena, currentThread, newThread } from '../lib/athena.js';
+import { runJob } from '../lib/jobs.js';
 import { Markdown } from '../lib/markdown.jsx';
 
 const SUGGESTIONS = ['What should I do first today?', "What's due this week?", 'Plan my ColibriOS time this week', 'Give me ten hooks for seed 4'];
@@ -48,6 +49,18 @@ export default function Athena() {
     if (msg) { navigate('.', { replace: true, state: null }); send(msg); }
   }, [location.state, navigate, send]);
 
+  // Start Level 10 (EOS page or Settings) opens a fresh thread with Metis.
+  useEffect(() => {
+    if (!location.state?.level10) return;
+    navigate('.', { replace: true, state: null });
+    const t = newThread();
+    setThread(t); setRows([]); setErr('');
+    runJob({ key: 'level10', title: 'Level 10 with Metis' }, 'Start the Level 10.', t)
+      .then(({ request, startError }) => { setRows([request]); if (startError) setErr(startError); })
+      .catch((e) => setErr(e.message));
+  }, [location.state, navigate]);
+  const metis = (rows || [])[0]?.job === 'level10';
+
   const working = (rows || []).find((r) => r.status === 'running') || (rows || []).find((r) => r.status === 'queued');
   const since = working ? Math.max(0, Math.round((Date.now() - Date.parse(working.started_at || working.created_at)) / 1000)) : 0;
   void tick;
@@ -55,10 +68,13 @@ export default function Athena() {
   return (
     <section className="chat">
       <div className="chat-head">
-        <div><p className="eyebrow">Your Chief of Staff</p><h2>Talk to Athena</h2></div>
+        {metis ? <div><p className="eyebrow">Metis · Level 10</p><h2>Friday check-in</h2></div>
+          : <div><p className="eyebrow">Your Chief of Staff</p><h2>Talk to Athena</h2></div>}
         <button className="linkbtn" type="button" onClick={() => { setThread(newThread()); setRows([]); setErr(''); }}>Start a fresh conversation</button>
       </div>
-      <p className="muted small" style={{ margin: 0 }}>Athena reads and updates your tasks, briefs, money, content and brand files. She drafts but never sends. Replies take 1 to 3 minutes. She can't see Gmail or your calendar from here.</p>
+      <p className="muted small" style={{ margin: 0 }}>{metis
+        ? 'Metis runs your Level 10 here and writes the Scorecard, Rocks, Issues and to-dos back into the app. Replies take 1 to 3 minutes.'
+        : 'Athena reads and updates your tasks, briefs, money, content and brand files, and sees your calendar once it is linked in Settings. She drafts but never sends. Replies take 1 to 3 minutes. She cannot see Gmail.'}</p>
       <div className="panel chat-log" ref={logRef} aria-live="polite">
         {rows && rows.length === 0 && <p className="bubble note">Ask anything, or tell her what to change.</p>}
         {(rows || []).map((r) => (
@@ -78,7 +94,7 @@ export default function Athena() {
       {working && (
         <div className="working">
           <span className="dots"><i /><i /><i /></span>
-          <span>{working.status === 'queued' ? 'Waking Athena up' : 'Athena is working'}… {Math.floor(since / 60)}:{String(since % 60).padStart(2, '0')}</span>
+          <span>{working.status === 'queued' ? `Waking ${metis ? 'Metis' : 'Athena'} up` : `${metis ? 'Metis' : 'Athena'} is working`}… {Math.floor(since / 60)}:{String(since % 60).padStart(2, '0')}</span>
         </div>
       )}
       {err && <p className="form-msg">{err}</p>}

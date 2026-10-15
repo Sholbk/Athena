@@ -18,7 +18,7 @@ For long text (notes, a post's copy, a brief), write it to a file under /tmp wit
 
 Tables you can change: tasks, briefs, money, content, pages. Tables you only read: rocks, scorecard, issues, l10 (Metis owns them). Your changes show in her app right away and reach Obsidian within 15 minutes.
 
-You cannot read Gmail or Google Calendar from here. If she asks about mail or meetings, say so in one line and point her to the Inbox on her Athena Desk in claude.ai.
+You cannot read Gmail from here. If she asks about mail, say so in one line. Her calendar for the next 7 days is listed below these instructions when she has linked it in Settings.
 
 ## Field values, spelled exactly
 

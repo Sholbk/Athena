@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useRows } from '../lib/rows.js';
 import { Markdown } from '../lib/markdown.jsx';
 import { mdLabel, todayYMD } from '../lib/dates.js';
@@ -10,12 +11,14 @@ const VIEWS = [['rocks', 'Rocks'], ['scorecard', 'Scorecard'], ['issues', 'Issue
 export default function EOS() {
   const [view, setView] = useState(() => { try { return localStorage.getItem('athena:eos-view') || 'rocks'; } catch { return 'rocks'; } });
   const pick = (v) => { setView(v); try { localStorage.setItem('athena:eos-view', v); } catch {} };
+  const navigate = useNavigate();
   return (
     <section>
       <div className="week-head">
         <div><p className="eyebrow">Metis · ColibriOS EOS</p><h2>EOS</h2></div>
+        <button className="btn" type="button" onClick={() => navigate('/athena', { state: { level10: true } })}>Start Level 10</button>
       </div>
-      <p className="muted small" style={{ marginTop: -6 }}>Metis runs the Level 10 every Friday at 9:00 AM and updates all of this. You can edit anything here too. Changes reach Obsidian on the next sync. New Rocks get set at the quarterly, not mid-quarter.</p>
+      <p className="muted small" style={{ marginTop: -6 }}>Start the Level 10 with Metis on Friday mornings. She walks you through it in the Athena tab and updates all of this. You can edit anything here too. Changes reach Obsidian on the next sync. New Rocks get set at the quarterly, not mid-quarter.</p>
       <div className="seg" role="tablist" aria-label="EOS views">
         {VIEWS.map(([v, label]) => <button key={v} type="button" role="tab" aria-selected={view === v} onClick={() => pick(v)}>{label}</button>)}
       </div>

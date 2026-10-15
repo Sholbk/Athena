@@ -11,12 +11,13 @@ import Soon from './pages/Soon.jsx';
 import Marketing from './pages/Marketing.jsx';
 import Athena from './pages/Athena.jsx';
 import EOS from './pages/EOS.jsx';
+import Settings from './pages/Settings.jsx';
 import TaskDrawer from './components/TaskDrawer.jsx';
 import Owl from './components/Owl.jsx';
 
 const NAV = [
   ['/', 'Today'], ['/tasks', 'Tasks'], ['/week', 'Week'],
-  ['/marketing', 'Marketing'], ['/eos', 'EOS'], ['/athena', 'Athena'],
+  ['/marketing', 'Marketing'], ['/eos', 'EOS'], ['/athena', 'Athena'], ['/settings', 'Settings'],
 ];
 
 export default function App() {
@@ -82,6 +83,7 @@ function Shell({ email }) {
           <Route path="/marketing" element={<Marketing />} />
           <Route path="/eos" element={<EOS />} />
           <Route path="/athena" element={<Athena />} />
+          <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

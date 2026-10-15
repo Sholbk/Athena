@@ -1,9 +1,10 @@
 name: Athena
 
-# Answers messages from the Athena tab. The app saves a message to athena_requests and the
-# athena-dispatch edge function sends a repository_dispatch here. Runs Claude Code on
-# Stephanie's Claude subscription (CLAUDE_CODE_OAUTH_TOKEN). Changes land in Supabase;
-# the Vault sync workflow carries them to Obsidian.
+# Answers messages from the Athena tab and runs Athena's jobs (daily brief, Monday plan,
+# Friday wrap, Level 10). The app, or the database clock for scheduled jobs, saves a row to
+# athena_requests and the athena-dispatch edge function sends a repository_dispatch here.
+# Runs Claude Code on Stephanie's Claude subscription (CLAUDE_CODE_OAUTH_TOKEN). Changes land
+# in Supabase; the Vault sync workflow carries them to Obsidian.
 on:
   repository_dispatch:
     types: [athena]
@@ -17,7 +18,7 @@ concurrency:
 jobs:
   answer:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
 
@@ -29,10 +30,12 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install Claude Code
-        run: npm install -g @anthropic-ai/claude-code
+      - name: Install Claude Code and the calendar reader
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          pip install --quiet icalendar==6.3.2 recurring-ical-events==3.8.2
 
-      - name: Answer queued messages
+      - name: Answer queued messages and run queued jobs
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
