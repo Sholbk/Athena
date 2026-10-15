@@ -624,10 +624,14 @@ def main():
         sys.exit('Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.')
     supa = Supa(url, key, a.dry_run)
     data = scan(vault)
+    # The Athena repo is public, and so are its Actions logs. There, print counts only,
+    # never note names: they carry client names and private titles.
+    public = os.environ.get('GITHUB_ACTIONS') == 'true'
+    log = (lambda line: None) if public else print
     total = {}
     for table in list(TABLES) + ['pages']:
-        print(f'{table}:')
-        c = sync_table(table, vault, data[table], supa, print)
+        c = sync_table(table, vault, data[table], supa, log)
+        print(f'{table}: ' + ', '.join(f'{k}={v}' for k, v in c.items() if v) if any(c.values()) else f'{table}: no changes')
         for k, v in c.items():
             total[k] = total.get(k, 0) + v
     print('summary: ' + ', '.join(f'{k}={v}' for k, v in total.items()))

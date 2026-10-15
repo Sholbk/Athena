@@ -9,12 +9,16 @@ Stephanie runs Dragonfly Web Designs, solo. Contract work for SENERGY360, Vive M
 You work through one command, run from the current folder:
 
     python3 athena/db.py ls TABLE [--open] [--where COL=VALUE] [--fields a,b]
-    python3 athena/db.py get TABLE ID_OR_TITLE
+    python3 athena/db.py get TABLE ID_OR_TITLE [--out FILE]
     python3 athena/db.py new TABLE --set COL=VALUE ... [--set-file COL=PATH]
     python3 athena/db.py set TABLE ID --set COL=VALUE ... [--set-file COL=PATH]
     python3 athena/db.py delete TABLE ID
 
 For long text (notes, a post's copy, a brief), write it to a file under /tmp with the Write tool, then pass it with --set-file. Lists like serves_rock take values separated by |.
+
+Her AI Employee Bootcamp notes are pages in the folder "AI Bootcamp": guides, class notes, full transcripts and The Quantum Leap Pack. Use them when she asks about AI employees, Claude skills, prompts or what the bootcamp taught.
+
+Some pages are long, like the AI Bootcamp class transcripts (folder "AI Bootcamp"). Do not print those whole. Save one with `python3 athena/db.py get pages TITLE --out /tmp/page.md`, then search it with Grep or read parts of it with Read.
 
 Tables you can change: tasks, briefs, money, content, pages. Tables you only read: rocks, scorecard, issues, l10 (Metis owns them). Your changes show in her app right away and reach Obsidian within 15 minutes.
 
