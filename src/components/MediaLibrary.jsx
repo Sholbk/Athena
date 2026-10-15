@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { MAX_FILE, SHELVES, SPACE, downloadFile, fileUrl, sizeText, tagList, uploadFiles, useMedia } from '../lib/media.js';
+import { MAX_FILE, SHELVES, SPACE, downloadFile, fileUrl, importWonderreel, sizeText, tagList, uploadFiles, useMedia, wonderreelGallery, wonderreelSource } from '../lib/media.js';
 import { Panel, Skel } from './bits.jsx';
 
 // The Media view on the Marketing page: her own photos, and finished posts to use again.
@@ -10,6 +10,7 @@ export default function MediaLibrary({ onCaption }) {
   const [shelf, setShelf] = useState(() => { try { return localStorage.getItem('athena:media-shelf') || 'photo'; } catch { return 'photo'; } });
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(null);
+  const [importing, setImporting] = useState(false);
   const pick = (s) => { setShelf(s); setOpen(null); try { localStorage.setItem('athena:media-shelf', s); } catch {} };
 
   const rows = store.rows || [];
@@ -33,6 +34,7 @@ export default function MediaLibrary({ onCaption }) {
         {store.rows && <Meter used={used} />}
       </div>
       {store.error && <div className="notice"><strong>The library did not load</strong><p>{store.error}</p></div>}
+      <div className="btn-row mt"><button className="btn ghost small" type="button" onClick={() => setImporting(true)}>Import from WonderReel</button></div>
       <Uploader shelf={shelf} onDone={store.reload} />
       {!store.rows ? (!store.error && <Skel />) : (
         <>
@@ -59,7 +61,77 @@ export default function MediaLibrary({ onCaption }) {
         </>
       )}
       {current && <MediaDrawer key={current.id} row={current} store={store} onCaption={onCaption} onClose={() => setOpen(null)} />}
+      {importing && <WonderReelImport rows={rows} shelf={shelf} onDone={(s) => { pick(s); store.reload(); }} onClose={() => setImporting(false)} />}
     </div>
+  );
+}
+
+// Her newest WonderReel work (at most 20). She ticks what to keep; those are copied into the library.
+function WonderReelImport({ rows, shelf: startShelf, onDone, onClose }) {
+  const [items, setItems] = useState(null);
+  const [err, setErr] = useState('');
+  const [chosen, setChosen] = useState(() => new Set());
+  const [shelf, setShelf] = useState(startShelf === 'photo' ? 'photo' : 'finished');
+  const [busy, setBusy] = useState(null);
+  const [res, setRes] = useState(null);
+  useEffect(() => {
+    let live = true;
+    wonderreelGallery().then((list) => live && setItems(list)).catch((e) => live && setErr(e.message));
+    return () => { live = false; };
+  }, []);
+  const have = new Set(rows.map((r) => r.source_url).filter(Boolean));
+  const toggle = (id) => setChosen((cur) => { const next = new Set(cur); if (next.has(id)) next.delete(id); else next.add(id); return next; });
+  const go = async () => {
+    setRes(null);
+    const list = items.filter((i) => chosen.has(i.id));
+    const out = await importWonderreel(list, shelf, (n, total) => setBusy(`Importing ${n} of ${total}…`));
+    setBusy(null); setRes(out); setChosen(new Set());
+    onDone(shelf);
+  };
+  return (
+    <>
+      <div className="scrim" onClick={busy ? undefined : onClose} />
+      <aside className="drawer wide" role="dialog" aria-modal="true" aria-label="Import from WonderReel" onKeyDown={(e) => e.key === 'Escape' && !busy && onClose()}>
+        <div className="d-head"><p className="eyebrow">Import from WonderReel</p><button className="linkbtn" type="button" onClick={onClose} disabled={!!busy}>Close</button></div>
+        <p className="small muted" style={{ margin: 0 }}>Your newest WonderReel images and videos. Tick the ones to keep. WonderReel's links expire, so this saves a copy here.</p>
+        {err ? (
+          <div className="notice"><strong>WonderReel did not load</strong><p>{err}</p>{/not connected/i.test(err) && <p><a href="/settings">Open Settings</a> and paste your WonderReel connect URL.</p>}</div>
+        ) : !items ? <Skel /> : items.length === 0 ? <p className="empty">Nothing in your WonderReel gallery yet.</p> : (
+          <>
+            <div className="media-grid wr-grid">
+              {items.map((it) => {
+                const done = have.has(wonderreelSource(it.id));
+                return (
+                  <label key={it.id} className={'tile wr-tile' + (chosen.has(it.id) ? ' on' : '') + (done ? ' done' : '')} title={it.prompt}>
+                    {it.kind === 'video'
+                      ? <video src={it.url} muted playsInline preload="metadata" />
+                      : <img src={it.url} alt="" loading="lazy" />}
+                    {it.kind === 'video' && <span className="tile-badge">Video</span>}
+                    <span className="tile-title">{it.prompt || 'No prompt'}</span>
+                    {done ? <span className="pill">Already in Media</span>
+                      : <span className="wr-check"><input type="checkbox" checked={chosen.has(it.id)} onChange={() => toggle(it.id)} disabled={!!busy} /> Keep</span>}
+                  </label>
+                );
+              })}
+            </div>
+            <div className="d-actions">
+              <label className="f wr-shelf">Save to
+                <select value={shelf} onChange={(e) => setShelf(e.target.value)} disabled={!!busy}>
+                  {SHELVES.map(([s, label]) => <option key={s} value={s}>{label}</option>)}
+                </select>
+              </label>
+              <button className="btn" type="button" onClick={go} disabled={!chosen.size || !!busy}>{busy || (chosen.size ? `Import ${chosen.size}` : 'Tick what to import')}</button>
+            </div>
+          </>
+        )}
+        {res && (
+          <div className="small">
+            <p style={{ margin: 0 }}>{res.added === 1 ? '1 imported.' : `${res.added} imported.`}{res.skipped.length > 0 && ` ${res.skipped.length} skipped:`}</p>
+            {res.skipped.length > 0 && <ul className="plain">{res.skipped.map((x, i) => <li key={i}><b>{x.name}</b>: {x.why}</li>)}</ul>}
+          </div>
+        )}
+      </aside>
+    </>
   );
 }
 
