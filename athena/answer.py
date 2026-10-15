@@ -28,7 +28,8 @@ TIMEOUT = 20 * 60        # seconds per chat message (making a post waits on Blot
 JOB_TIMEOUT = 25 * 60    # seconds per report job
 
 ALLOWED_TOOLS = ['Read', 'Write', 'Glob', 'Grep', 'Bash(python3 athena/db.py:*)',
-                 'Bash(python3 athena/blotato.py:*)', 'Bash(python3 athena/media.py:*)']
+                 'Bash(python3 athena/blotato.py:*)', 'Bash(python3 athena/media.py:*)',
+                 'Bash(python3 athena/ideas.py:*)', 'Bash(python3 athena/site.py:*)']
 BRIEF_TYPES = {'monday_plan': 'Monday plan', 'friday_wrap': 'Friday wrap'}
 FIELDS = ['client_hours', 'colibrios_hours', 'decision_needed', 'gone_quiet', 'carry_over']
 
@@ -118,7 +119,7 @@ def chat_prompt(req, history, job):
     if job:  # a meeting, such as the Level 10 with Metis
         guide = job['prompt'] + '\n\n' + read('JOBS.md')
     else:
-        guide = read('PROMPT.md') + '\n\n' + read('CALLS.md') + '\n\n' + read('POSTS.md') + '\n\n' + calendar_for(None)
+        guide = read('PROMPT.md') + '\n\n' + read('CALLS.md') + '\n\n' + read('POSTS.md') + '\n\n' + read('IDEAS.md') + '\n\n' + calendar_for(None)
     convo = conversation(history, 'Metis' if job else 'Athena')
     return f'{guide}\n\nRight now it is {mountain_now()}.\n\n{convo}Stephanie\'s new message:\n\n{req["message"]}'
 

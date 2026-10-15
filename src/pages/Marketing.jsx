@@ -4,6 +4,7 @@ import { CONTENT_COLS, CONTENT_STATUSES, DEFAULT_CTA, STATUS_TONE } from '../lib
 import { addDays, dueText, mdLabel, todayYMD } from '../lib/dates.js';
 import { addIdea, markUsed, parseIdeas } from '../lib/ideas.js';
 import { usePostAsks } from '../lib/postAsks.js';
+import { useFindIdeas } from '../lib/findIdeas.js';
 import { Markdown } from '../lib/markdown.jsx';
 import { Panel, Skel } from '../components/bits.jsx';
 import ContentDrawer from '../components/ContentDrawer.jsx';
@@ -161,6 +162,8 @@ function Ideas({ pages, content, onStart, onMake, asks }) {
   const [adding, setAdding] = useState({ group: '', text: '' });
   const [msg, setMsg] = useState('');
   const [sent, setSent] = useState(null);
+  const finder = useFindIdeas(pages.reload);
+  const [findMsg, setFindMsg] = useState('');
   if (!pages.rows) return <Skel />;
   if (!page) return <p className="empty">The ColibriOS Brand Files page has not synced yet.</p>;
   if (!bank) return <p className="empty">No "Idea bank" section found in the Brand Files page.</p>;
@@ -195,9 +198,27 @@ function Ideas({ pages, content, onStart, onMake, asks }) {
     setSent(null);
   };
 
+  const find = async () => {
+    setFindMsg('');
+    try { const err = await finder.find(); if (err) setFindMsg(`Saved for Athena, but she did not start yet: ${err}`); }
+    catch (e) { setFindMsg(e.message); }
+  };
+
   return (
     <div className="ideas">
       <p className="muted small" style={{ margin: '14px 0' }}>Each seed is an angle to write from, not a finished post. Anything that names a real person needs their yes first. Edits here save into your Brand Files page in Obsidian.</p>
+      <div className="notice soft find-ideas">
+        <div>
+          <strong>New ideas from colibrios.com</strong>
+          <p>Athena reads pages of your site she has not read yet and adds up to 8 new seeds, each one marked with the page it came from.</p>
+          {finder.running && <p className="small">Athena is reading colibrios.com. New seeds show up here in a few minutes.</p>}
+          {!finder.running && finder.last?.status === 'done' && finder.last.reply && <div className="small md"><Markdown text={finder.last.reply} /></div>}
+          {!finder.running && finder.last?.status === 'failed' && <p className="small late">Athena did not finish: {(finder.last.error || '').slice(0, 200)}</p>}
+          {finder.timedOut && <p className="small late">The last search never came back. Try again.</p>}
+          {findMsg && <p className="small late">{findMsg}</p>}
+        </div>
+        {finder.running ? <span className="pill info">Reading…</span> : <button className="btn small" type="button" onClick={find}>Find new ideas</button>}
+      </div>
       <Panel title="Add an idea">
         <form className="add" onSubmit={add}>
           <label className="f">Pillar<select value={adding.group} onChange={(e) => setAdding({ ...adding, group: e.target.value })}><option value="">Pick one</option>{bank.groups.map((g) => <option key={g.title}>{g.title}</option>)}</select></label>

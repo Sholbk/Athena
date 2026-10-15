@@ -311,6 +311,12 @@ details summary{cursor:pointer;font-weight:700}
 .media-view{border-radius:10px;overflow:hidden;background:var(--soft)}
 .media-view img,.media-view video{display:block;width:100%;max-height:60vh;object-fit:contain;background:var(--soft)}
 
+/* New ideas from colibrios.com, on the idea bank */
+.find-ideas{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between}
+.find-ideas > div{flex:1 1 280px;min-width:0}
+.find-ideas p{margin:4px 0 0;color:var(--ink)}
+.find-ideas .md p{margin:4px 0 0}
+
 /* A post's images in its drawer */
 .piece-media{display:grid;gap:10px;border-top:1px solid var(--line);padding-top:12px}
 .label-row{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between}
