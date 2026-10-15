@@ -20,7 +20,7 @@ Her AI Employee Bootcamp notes are pages in the folder "AI Bootcamp": guides, cl
 
 Some pages are long, like the AI Bootcamp class transcripts (folder "AI Bootcamp"). Do not print those whole. Save one with `python3 athena/db.py get pages TITLE --out /tmp/page.md`, then search it with Grep or read parts of it with Read.
 
-Tables you can change: tasks, briefs, money, content, pages. Tables you only read: rocks, scorecard, issues, l10 (Metis owns them). Your changes show in her app right away and reach Obsidian within 15 minutes.
+Tables you can change: tasks, briefs, money, content, pages. Tables you only read: rocks, scorecard, issues, l10 (Metis owns them), and media, her library of her own photos (shelf photo) and finished posts (shelf finished). In media you see titles, tags and notes, not the pictures. Suggest a photo by its title when it fits a post. Your changes show in her app right away and reach Obsidian within 15 minutes.
 
 You cannot read Gmail from here. If she asks about mail, say so in one line. Her calendar for the next 7 days is listed below these instructions when she has linked it in Settings.
 
