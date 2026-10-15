@@ -3,6 +3,7 @@ import { useRows } from '../lib/rows.js';
 import { CONTENT_COLS, CONTENT_STATUSES, DEFAULT_CTA, STATUS_TONE } from '../lib/content.js';
 import { addDays, dueText, mdLabel, todayYMD } from '../lib/dates.js';
 import { addIdea, markUsed, parseIdeas } from '../lib/ideas.js';
+import { PROMPTS_PAGE, parsePrompts, usePromptAsks } from '../lib/imagePrompts.js';
 import { Markdown } from '../lib/markdown.jsx';
 import { Panel, Skel } from '../components/bits.jsx';
 import ContentDrawer from '../components/ContentDrawer.jsx';
@@ -137,6 +138,10 @@ function Ideas({ pages, content, onStart }) {
   const bank = page ? parseIdeas(page.body) : null;
   const [adding, setAdding] = useState({ group: '', text: '' });
   const [msg, setMsg] = useState('');
+  const promptsBody = (pages.rows || []).find((p) => p.title === PROMPTS_PAGE)?.body;
+  const prompts = useMemo(() => parsePrompts(promptsBody), [promptsBody]);
+  const { writing, ask } = usePromptAsks(prompts, pages.reload);
+  const [showing, setShowing] = useState(null);
   if (!pages.rows) return <Skel />;
   if (!page) return <p className="empty">The ColibriOS Brand Files page has not synced yet.</p>;
   if (!bank) return <p className="empty">No "Idea bank" section found in the Brand Files page.</p>;
@@ -161,9 +166,29 @@ function Ideas({ pages, content, onStart }) {
     } catch (err) { setMsg(err.message); }
   };
 
+  const missing = bank.groups.flatMap((g) => g.ideas).map((i) => i.num).filter((n) => !prompts[n] && !writing.has(n)).sort((a, b) => a - b);
+  const write = async (nums, message, redo) => {
+    setMsg('');
+    try { const err = await ask(nums, message, redo); if (err) setMsg(`Saved, but Athena did not start yet: ${err}`); }
+    catch (e) { setMsg(e.message); }
+  };
+  const shown = showing && bank.groups.flatMap((g) => g.ideas).find((i) => i.num === showing);
+
   return (
     <div className="ideas">
       <p className="muted small" style={{ margin: '14px 0' }}>Each seed is an angle to write from, not a finished post. Anything that names a real person needs their yes first. Edits here save into your Brand Files page in Obsidian.</p>
+      {(missing.length > 0 || writing.size > 0) && (
+        <div className="notice soft prompt-note">
+          {writing.size > 0
+            ? <p>Athena is writing image prompts for {writing.size === 1 ? '1 idea' : `${writing.size} ideas`}. They show up here in a few minutes.</p>
+            : <p>{missing.length === 1 ? '1 idea has' : `${missing.length} ideas have`} no image prompts yet.</p>}
+          {missing.length > 0 && writing.size === 0 && (
+            <button className="btn small" type="button" onClick={() => write(missing.slice(0, 12), 'Write image prompts for every idea bank seed that does not have them yet.')}>
+              Write them{missing.length > 12 ? ' (12 at a time)' : ''}
+            </button>
+          )}
+        </div>
+      )}
       <Panel title="Add an idea">
         <form className="add" onSubmit={add}>
           <label className="f">Pillar<select value={adding.group} onChange={(e) => setAdding({ ...adding, group: e.target.value })}><option value="">Pick one</option>{bank.groups.map((g) => <option key={g.title}>{g.title}</option>)}</select></label>
@@ -181,6 +206,11 @@ function Ideas({ pages, content, onStart }) {
                   <div className="md">{inlineIdea(idea.text)}</div>
                   <div className="btn-row">
                     <button className="linkbtn" type="button" onClick={() => start(idea)}>Start a post</button>
+                    {writing.has(idea.num)
+                      ? <span className="pill info">Writing image prompts…</span>
+                      : prompts[idea.num]
+                        ? <button className="linkbtn" type="button" onClick={() => setShowing(idea.num)}>Image prompts</button>
+                        : <button className="linkbtn quiet" type="button" onClick={() => write([idea.num], `Write image prompts for idea bank seed ${idea.num}.`)}>Write image prompts</button>}
                     <button className="linkbtn quiet" type="button" onClick={() => used(idea)}>Mark used</button>
                     {inUse.has(idea.num) && <span className="pill info">In the pipeline</span>}
                   </div>
@@ -194,7 +224,47 @@ function Ideas({ pages, content, onStart }) {
             : <ul className="plain">{bank.used.map((u, i) => <li key={i}>{u.text}</li>)}</ul>}
         </Panel>
       </div>
+      {shown && prompts[shown.num] && (
+        <PromptDrawer idea={shown} prompt={prompts[shown.num]} writing={writing.has(shown.num)} onClose={() => setShowing(null)}
+          onRedo={() => write([shown.num], `Write new image prompts for idea bank seed ${shown.num}, replacing the ones there.`, true)} />
+      )}
     </div>
+  );
+}
+
+function PromptDrawer({ idea, prompt, writing, onRedo, onClose }) {
+  const [copied, setCopied] = useState('');
+  const copy = async (which, text) => {
+    try { await navigator.clipboard.writeText(text); setCopied(which); setTimeout(() => setCopied(''), 2500); }
+    catch { setCopied('fail'); }
+  };
+  const part = (id, name, job, text, tip) => (
+    <section className="prompt">
+      <div className="prompt-head">
+        <div><h3>{name}</h3><p className="small muted">{job}</p></div>
+        <button className="btn small" type="button" onClick={() => copy(id, text)} disabled={!text}>{copied === id ? 'Copied' : 'Copy'}</button>
+      </div>
+      {text ? <pre className="prompt-text">{text}</pre> : <p className="empty">Not written yet.</p>}
+      <p className="small muted">{tip}</p>
+    </section>
+  );
+  return (
+    <>
+      <div className="scrim" onClick={onClose} />
+      <aside className="drawer wide" role="dialog" aria-modal="true" aria-label={`Image prompts for seed ${idea.num}`} onKeyDown={(e) => e.key === 'Escape' && onClose()}>
+        <div className="d-head"><p className="eyebrow">Image prompts, seed {idea.num}</p><button className="linkbtn" type="button" onClick={onClose}>Close</button></div>
+        <div className="md small">{inlineIdea(idea.text)}</div>
+        {part('chatgpt', 'ChatGPT', 'Makes the picture', prompt.chatgpt,
+          'Paste it into ChatGPT. To put yourself in it, attach one of your photos from Media first.')}
+        {part('claude', 'Claude', 'Designs the graphic, with the words on it', prompt.claude,
+          'Paste it into Claude. It makes PNG slides to download. Save the ones you post to Media, Finished posts.')}
+        {copied === 'fail' && <p className="d-msg">Copy did not work in this browser. Select the text and copy it instead.</p>}
+        <div className="d-actions">
+          {writing ? <span className="pill info">Writing new prompts…</span>
+            : <button className="linkbtn" type="button" onClick={onRedo}>Ask Athena for new prompts</button>}
+        </div>
+      </aside>
+    </>
   );
 }
 
