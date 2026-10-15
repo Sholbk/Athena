@@ -2,7 +2,7 @@
 """Athena's hands: read and change the Athena database from inside a chat run.
 
   python3 athena/db.py ls TABLE [--open] [--where COL=VALUE ...] [--limit N] [--fields a,b,c]
-  python3 athena/db.py get TABLE ID_OR_TITLE
+  python3 athena/db.py get TABLE ID_OR_TITLE [--out FILE]
   python3 athena/db.py new TABLE --set COL=VALUE ... [--set-file COL=PATH ...]
   python3 athena/db.py set TABLE ID --set COL=VALUE ... [--set-file COL=PATH ...]
   python3 athena/db.py delete TABLE ID
@@ -121,7 +121,7 @@ def main():
     sub = p.add_subparsers(dest='cmd', required=True)
     s = sub.add_parser('ls'); s.add_argument('table'); s.add_argument('--open', action='store_true')
     s.add_argument('--where', action='append'); s.add_argument('--limit', type=int, default=200); s.add_argument('--fields')
-    s = sub.add_parser('get'); s.add_argument('table'); s.add_argument('ref')
+    s = sub.add_parser('get'); s.add_argument('table'); s.add_argument('ref'); s.add_argument('--out')
     for name in ('new', 'set'):
         s = sub.add_parser(name); s.add_argument('table')
         if name == 'set':
@@ -145,7 +145,12 @@ def main():
         print(json.dumps(clean(rows, fields), indent=1, ensure_ascii=False, default=str))
     elif a.cmd == 'get':
         table_ok(a.table)
-        print(json.dumps(clean([find(a.table, a.ref)])[0], indent=1, ensure_ascii=False, default=str))
+        row = clean([find(a.table, a.ref)])[0]
+        if a.out:  # long pages, such as class transcripts: save the body, then search it with Grep or Read
+            with open(a.out, 'w', encoding='utf-8') as f:
+                f.write(row.pop('body', ''))
+            row['body_saved_to'] = a.out
+        print(json.dumps(row, indent=1, ensure_ascii=False, default=str))
     elif a.cmd == 'new':
         table_ok(a.table, write=True)
         data = values(a.table, a.set, a.set_file)
