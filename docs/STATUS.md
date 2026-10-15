@@ -20,6 +20,7 @@ Supabase project: `dgjbzkslgjqsopjzzeqy` (named Athena).
 | Library tab: the AI Bootcamp notes from the vault's `AI Bootcamp` folder, to search and read (edits happen in Obsidian) | Done Oct 15 |
 | Call to-dos: Granola calls sync into the vault's `Meetings` folder (Obsidian plugin). Athena turns her to-dos into tasks (rules in `athena/CALLS.md`, log page "Calls read"), each weekday morning before the brief or when asked in chat | Done Oct 15 |
 | Marketing > Media: her own photos and finished posts in the private Storage bucket `media` (table `media`, migration applied by hand in the SQL editor because the project sits in the Dragonfly Free Accounts org). Photos shrink to 2048 px; free plan is 1 GB, 50 MB a file. Athena reads titles and tags | Done Oct 16 |
+| Idea bank image prompts: per seed, a ChatGPT prompt (the picture) and a Claude prompt (PNG slides). Athena writes them on request (rules in `athena/IMAGES.md`, 12 seeds a run) into the page "Image prompts"; the Idea bank reads that page | Done Oct 16 |
 
 ## Secrets in place
 
