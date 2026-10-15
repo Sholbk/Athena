@@ -62,7 +62,7 @@ function nextDay(ymd: string) {
   d.setUTCDate(d.getUTCDate() + 1);
   return d.toISOString().slice(0, 10).replace(/-/g, '');
 }
-const esc = (s: string) => s.replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+const esc = (s: string) => s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
 // Lines longer than 75 bytes continue on the next line after a space (RFC 5545).
 function fold(line: string) {
   const bytes = new TextEncoder().encode(line);
