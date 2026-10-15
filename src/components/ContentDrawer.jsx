@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { CHANNELS, CONTENT_STATUSES, DEFAULT_CTA, copyChecks } from '../lib/content.js';
 import { askAthena } from '../lib/athena.js';
+import { downloadFile, usePieceMedia } from '../lib/media.js';
 
-// The next step for a piece, so the common move is one click.
+// The next step for a piece, so the common move is one click. The app never posts:
+// she posts by hand or in Blotato, then marks it here.
 const NEXT = {
   Idea: { to: 'Drafted', label: 'Mark drafted' },
   Drafted: { to: 'Awaiting approval', label: 'Send for my approval' },
-  'Awaiting approval': { to: 'Scheduled', label: 'Approve and schedule' },
+  'Awaiting approval': { to: 'Shipped', label: 'I posted it' },
   Scheduled: { to: 'Shipped', label: 'Mark shipped' },
 };
 
@@ -77,7 +79,9 @@ export default function ContentDrawer({ row, store, onClose }) {
             {f.cta !== DEFAULT_CTA && <button className="btn ghost small" type="button" onClick={() => setF({ ...f, cta: DEFAULT_CTA })}>Use the trial CTA</button>}
           </div>
         </label>
-        <label className="f">The copy<textarea rows="12" value={f.body} onChange={set('body')} placeholder="Write the post here, or ask Athena to draft it once chat is on." /></label>
+        <label className="f">The copy<textarea rows="12" value={f.body} onChange={set('body')} placeholder="Write the post here, or ask Athena to draft it." /></label>
+        <div className="btn-row"><CopyButton text={f.body} /></div>
+        <PieceMedia contentId={row.id} refresh={`${row.status}|${row.updated_at}`} />
         {checks.length > 0 && (
           <div className="checks" role="status">
             <strong>Before it goes out</strong>
@@ -104,6 +108,45 @@ export default function ContentDrawer({ row, store, onClose }) {
         {row.vault_path && <p className="small muted">In Obsidian: {row.vault_path}</p>}
       </aside>
     </>
+  );
+}
+
+function CopyButton({ text }) {
+  const [said, setSaid] = useState('');
+  const copy = async (e) => {
+    e.preventDefault();
+    try { await navigator.clipboard.writeText(text); setSaid('Copied'); }
+    catch { setSaid('Select the text and copy it'); }
+    setTimeout(() => setSaid(''), 2500);
+  };
+  return <button className="btn ghost small" type="button" onClick={copy} disabled={!text.trim()}>{said || 'Copy caption'}</button>;
+}
+
+// The images and videos that go with this piece, from Media, ready to download.
+function PieceMedia({ contentId, refresh }) {
+  const { rows, thumbs } = usePieceMedia(contentId, refresh);
+  const [msg, setMsg] = useState('');
+  if (!rows || rows.length === 0) return null;
+  const blotato = rows.find((r) => r.source_url)?.source_url;
+  const save = async (r) => { setMsg(''); try { await downloadFile(r); } catch (e) { setMsg(e.message); } };
+  return (
+    <section className="piece-media" aria-label="Images for this post">
+      <div className="label-row"><strong>{rows.length === 1 ? 'The image' : `The images (${rows.length})`}</strong>
+        {blotato && /^https:\/\/my\.blotato\.com\//.test(blotato) && <a className="btn ghost small" href={blotato} target="_blank" rel="noopener noreferrer">Open in Blotato</a>}
+      </div>
+      <div className="media-grid">
+        {rows.map((r, i) => (
+          <div key={r.id} className="tile">
+            {thumbs[r.thumb_path]
+              ? <img src={thumbs[r.thumb_path]} alt={`Slide ${i + 1}`} loading="lazy" />
+              : <span className="tile-none">{r.mime.startsWith('video/') ? 'Video' : 'No preview'}</span>}
+            <button className="linkbtn" type="button" onClick={() => save(r)}>Download{rows.length > 1 ? ` ${i + 1}` : ''}</button>
+          </div>
+        ))}
+      </div>
+      <p className="small muted" style={{ margin: 0 }}>Also saved in Media, Finished posts.</p>
+      {msg && <p className="d-msg">{msg}</p>}
+    </section>
   );
 }
 

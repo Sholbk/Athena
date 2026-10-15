@@ -9,7 +9,7 @@ export const BUCKET = 'media';
 export const SPACE = 1024 ** 3;
 export const MAX_FILE = 50 * 1024 ** 2;
 export const SHELVES = [['photo', 'My photos'], ['finished', 'Finished posts']];
-export const MEDIA_COLS = 'id,shelf,title,tags,notes,seed,path,thumb_path,mime,bytes,width,height,created_at,updated_at';
+export const MEDIA_COLS = 'id,shelf,title,tags,notes,seed,path,thumb_path,mime,bytes,width,height,content_id,source_url,created_at,updated_at';
 const TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/quicktime', 'video/webm'];
 const PHOTO_EDGE = 2048;
 const THUMB_EDGE = 480;
@@ -36,10 +36,7 @@ export function useMedia() {
     const { data, error } = await supabase.from('media').select(MEDIA_COLS).is('deleted_at', null).order('created_at', { ascending: false });
     if (error) { setError(error.message); return; }
     setRows(data); setError(null);
-    const paths = data.map((r) => r.thumb_path).filter(Boolean);
-    if (!paths.length) { setThumbs({}); return; }
-    const { data: signed } = await bucket().createSignedUrls(paths, 3600);
-    setThumbs(Object.fromEntries((signed || []).filter((s) => s.signedUrl).map((s) => [s.path, s.signedUrl])));
+    setThumbs(await signThumbs(data));
   }, []);
 
   useEffect(() => {
@@ -65,6 +62,35 @@ export function useMedia() {
   }, []);
 
   return { rows, thumbs, error, reload: load, save, remove };
+}
+
+// Links to the previews of some rows, by thumb_path. They last an hour.
+async function signThumbs(rows) {
+  const paths = rows.map((r) => r.thumb_path).filter(Boolean);
+  if (!paths.length) return {};
+  const { data: signed } = await bucket().createSignedUrls(paths, 3600);
+  return Object.fromEntries((signed || []).filter((s) => s.signedUrl).map((s) => [s.path, s.signedUrl]));
+}
+
+// The files that go with one post. `refresh` changes when the post does, so images Athena
+// just made show up.
+export function usePieceMedia(contentId, refresh) {
+  const [rows, setRows] = useState(null);
+  const [thumbs, setThumbs] = useState({});
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      const { data, error } = await supabase.from('media').select(MEDIA_COLS).eq('content_id', contentId)
+        .is('deleted_at', null).order('created_at', { ascending: true });
+      if (!live) return;
+      if (error) { setRows([]); return; }
+      setRows(data);
+      const t = await signThumbs(data);
+      if (live) setThumbs(t);
+    })();
+    return () => { live = false; };
+  }, [contentId, refresh]);
+  return { rows, thumbs };
 }
 
 // Uploads a batch one file at a time. A file that cannot be used is skipped with a reason;
@@ -187,4 +213,11 @@ export async function fileUrl(row, download = false) {
   const { data, error } = await bucket().createSignedUrl(row.path, 3600, opts);
   if (error) throw error;
   return data.signedUrl;
+}
+
+// Saves the full file to her computer or phone.
+export async function downloadFile(row) {
+  const a = document.createElement('a');
+  a.href = await fileUrl(row, true); a.rel = 'noopener';
+  document.body.appendChild(a); a.click(); a.remove();
 }

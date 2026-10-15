@@ -12,7 +12,8 @@ Three kinds of row:
   - meeting job (Level 10 with Metis): a chat thread whose first row names the job. Guide is
     the job's prompt, and Metis may change Rocks, Scorecard, Issues and Level 10.
 
-Needs SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY and CLAUDE_CODE_OAUTH_TOKEN.
+Needs SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY and CLAUDE_CODE_OAUTH_TOKEN. BLOTATO_API_KEY lets
+Athena make post images (POSTS.md); without it she still writes the captions.
 """
 import datetime, json, os, re, subprocess, sys, traceback, urllib.error, urllib.parse, urllib.request
 from zoneinfo import ZoneInfo
@@ -23,10 +24,11 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 TZ = ZoneInfo('America/Denver')
 HISTORY = 12             # earlier messages in the thread that Athena sees
-TIMEOUT = 12 * 60        # seconds per chat message
+TIMEOUT = 20 * 60        # seconds per chat message (making a post waits on Blotato)
 JOB_TIMEOUT = 25 * 60    # seconds per report job
 
-ALLOWED_TOOLS = ['Read', 'Write', 'Glob', 'Grep', 'Bash(python3 athena/db.py:*)']
+ALLOWED_TOOLS = ['Read', 'Write', 'Glob', 'Grep', 'Bash(python3 athena/db.py:*)',
+                 'Bash(python3 athena/blotato.py:*)', 'Bash(python3 athena/media.py:*)']
 BRIEF_TYPES = {'monday_plan': 'Monday plan', 'friday_wrap': 'Friday wrap'}
 FIELDS = ['client_hours', 'colibrios_hours', 'decision_needed', 'gone_quiet', 'carry_over']
 
@@ -116,7 +118,7 @@ def chat_prompt(req, history, job):
     if job:  # a meeting, such as the Level 10 with Metis
         guide = job['prompt'] + '\n\n' + read('JOBS.md')
     else:
-        guide = read('PROMPT.md') + '\n\n' + read('CALLS.md') + '\n\n' + read('IMAGES.md') + '\n\n' + calendar_for(None)
+        guide = read('PROMPT.md') + '\n\n' + read('CALLS.md') + '\n\n' + read('POSTS.md') + '\n\n' + calendar_for(None)
     convo = conversation(history, 'Metis' if job else 'Athena')
     return f'{guide}\n\nRight now it is {mountain_now()}.\n\n{convo}Stephanie\'s new message:\n\n{req["message"]}'
 

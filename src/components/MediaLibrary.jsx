@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { MAX_FILE, SHELVES, SPACE, fileUrl, sizeText, tagList, uploadFiles, useMedia } from '../lib/media.js';
+import { MAX_FILE, SHELVES, SPACE, downloadFile, fileUrl, sizeText, tagList, uploadFiles, useMedia } from '../lib/media.js';
 import { Panel, Skel } from './bits.jsx';
 
 // The Media view on the Marketing page: her own photos, and finished posts to use again.
-export default function MediaLibrary() {
+// onCaption(row, link) asks Athena to write a post for a file, such as a reel made in WonderReel.
+// It calls link(contentId) to tie the file to the new post, and returns a line to show her.
+export default function MediaLibrary({ onCaption }) {
   const store = useMedia();
   const [shelf, setShelf] = useState(() => { try { return localStorage.getItem('athena:media-shelf') || 'photo'; } catch { return 'photo'; } });
   const [q, setQ] = useState('');
@@ -19,7 +21,7 @@ export default function MediaLibrary() {
 
   return (
     <div className="media">
-      <p className="muted small" style={{ margin: '14px 0' }}>Your own photos for posts, and the finished posts you made, saved to use again. Only you can see them. Athena sees the titles and tags, not the pictures.</p>
+      <p className="muted small" style={{ margin: '14px 0' }}>Your own photos for posts, and the finished posts you made, saved to use again. Only you can see them. Open one and click "Write a caption for this" to have Athena write the post for it.</p>
       <div className="media-top">
         <div className="seg small" role="tablist" aria-label="Media shelves">
           {SHELVES.map(([s, label]) => (
@@ -56,7 +58,7 @@ export default function MediaLibrary() {
             )}
         </>
       )}
-      {current && <MediaDrawer key={current.id} row={current} store={store} onClose={() => setOpen(null)} />}
+      {current && <MediaDrawer key={current.id} row={current} store={store} onCaption={onCaption} onClose={() => setOpen(null)} />}
     </div>
   );
 }
@@ -114,7 +116,7 @@ function Uploader({ shelf, onDone }) {
   );
 }
 
-function MediaDrawer({ row, store, onClose }) {
+function MediaDrawer({ row, store, onCaption, onClose }) {
   const [f, setF] = useState({ title: row.title, tags: (row.tags || []).join(', '), notes: row.notes || '', seed: row.seed ?? '' });
   const [src, setSrc] = useState(null);
   const [msg, setMsg] = useState('');
@@ -129,8 +131,13 @@ function MediaDrawer({ row, store, onClose }) {
     catch (e) { setMsg(e.message); }
   };
   const download = async () => {
-    try { const a = document.createElement('a'); a.href = await fileUrl(row, true); a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); }
-    catch (e) { setMsg(e.message); }
+    try { await downloadFile(row); } catch (e) { setMsg(e.message); }
+  };
+  const [asking, setAsking] = useState(false);
+  const caption = async () => {
+    setAsking(true); setMsg('');
+    try { setMsg(await onCaption(row, (contentId) => store.save(row.id, { content_id: contentId }))); }
+    catch (e) { setMsg(e.message); setAsking(false); }
   };
   const remove = async () => {
     if (!confirm(`Delete "${row.title}"? The file is removed for good.`)) return;
@@ -154,6 +161,14 @@ function MediaDrawer({ row, store, onClose }) {
           <label className="f">Idea bank seed (optional)<input type="text" inputMode="numeric" value={f.seed} onChange={(e) => setF({ ...f, seed: e.target.value })} placeholder="4" /></label>
         )}
         <label className="f">Notes<textarea rows="3" value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} placeholder={row.shelf === 'finished' ? 'Where it ran and how it did' : 'Where it was taken, who is in it'} /></label>
+        {onCaption && (row.content_id
+          ? <p className="small muted">This goes with a post in Pipeline.</p>
+          : (
+            <div className="draft-ask">
+              <button className="btn ghost" type="button" disabled={asking} onClick={caption}>{asking ? 'Sent to Athena…' : 'Write a caption for this'}</button>
+              <p className="small muted">Athena {video ? 'reads the title, tags and notes' : 'looks at it, reads the title, tags and notes,'} and writes the post in your voice. It shows in Pipeline in a few minutes, with this file attached. Save your edits first.</p>
+            </div>
+          ))}
         <div className="d-actions">
           <div className="btn-row">
             <button className="btn" type="button" onClick={save}>Save</button>
