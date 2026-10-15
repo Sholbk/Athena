@@ -24,6 +24,7 @@ Your tools for this, besides db.py:
    - the one CTA as the last line
    - three to five hashtags at the very end
    Save the caption in `body` (a file under /tmp, then `--set-file body=...`), and the CTA in `cta`. Set `channel` to Instagram unless the piece already has one, and give it a short real title in place of "Seed N: ...".
+   If the piece has no `target_date`, give it the first weekday (Monday to Friday) after today that no other open piece has: check with `python3 athena/db.py ls content --open --fields target_date`. Her posting days calendar shows each post on that date, and she can move it.
 4. Make the image (below). Then set the status to Awaiting approval. If the image could not be made, still save the caption, set the status to Awaiting approval, and add one line to `notes`: "Image not made: <why, in plain words>".
 
 ### Making the image

@@ -282,6 +282,11 @@ table.sc tr.foot td{color:var(--muted);font-size:12.5px}
 @media (min-width:700px){.cal-add{grid-template-columns:minmax(0,.6fr) minmax(0,1.6fr) auto;align-items:end}}
 .cal-add input{width:100%}
 .settings-side{display:grid;gap:16px;align-content:start}
+.copy-line{display:flex;gap:8px;align-items:center;margin:8px 0}
+.copy-line input{flex:1 1 auto;min-width:0;font:13px/1.4 var(--f-mono)}
+.g-add{display:grid;gap:10px;margin:12px 0}
+.g-add input{width:100%}
+@media (min-width:700px){.g-add{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;align-items:end}}
 @media (min-width:700px){.wr-add{grid-template-columns:minmax(0,1fr) auto}}
 details ol{padding-left:20px;margin:8px 0 0}
 details summary{cursor:pointer;font-weight:700}
