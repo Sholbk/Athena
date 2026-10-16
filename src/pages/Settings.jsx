@@ -139,6 +139,7 @@ function Calendars() {
     e.preventDefault(); setErr('');
     const link = url.trim().replace(/^webcal:/i, 'https:');
     if (!/^https:\/\/\S+$/i.test(link)) return setErr('Paste the full link. It starts with https:// and usually ends in basic.ics.');
+    if (/\/public\/basic\.ics$/i.test(link)) return setErr('That is the public address, which only works for a calendar shared with everyone. Copy the Secret address in iCal format instead.');
     const { error } = await supabase.from('calendar_feeds').insert({ name: name.trim() || 'Google Calendar', ical_url: link });
     if (error) return setErr(error.message);
     setName(''); setUrl(''); load();
