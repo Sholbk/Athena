@@ -27,7 +27,9 @@ Deno.serve(async (req) => {
 
   const events: Ev[] = [];
   const problems: string[] = [];
-  await Promise.all((feeds || []).map(async (f) => {
+  // The same link added twice is read once.
+  const unique = [...new Map((feeds || []).map((f) => [f.ical_url, f])).values()];
+  await Promise.all(unique.map(async (f) => {
     try {
       const r = await fetch(f.ical_url, { headers: { 'User-Agent': 'Athena calendar reader' } });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -39,5 +41,5 @@ Deno.serve(async (req) => {
     }
   }));
   events.sort((a, b) => (a.date + (a.allDay ? '0' : '1') + a.start).localeCompare(b.date + (b.allDay ? '0' : '1') + b.start));
-  return json(200, { linked: (feeds || []).length > 0, events, problems });
+  return json(200, { linked: unique.length > 0, events, problems });
 });
