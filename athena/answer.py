@@ -11,9 +11,12 @@ Three kinds of row:
     and this script saves it where the Today page reads it.
   - meeting job (Level 10 with Metis): a chat thread whose first row names the job. Guide is
     the job's prompt, and Metis may change Rocks, Scorecard, Issues and Level 10.
+  - the LinkedIn comments job: a report whose drafts land on the Comment desk through
+    athena/linkedin.py (LINKEDIN.md); the brief itself is saved as the page "LinkedIn comments".
 
 Needs SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY and CLAUDE_CODE_OAUTH_TOKEN. BLOTATO_API_KEY lets
-Athena make post images (POSTS.md); without it she still writes the captions.
+Athena make post images (POSTS.md); without it she still writes the captions. APIFY_TOKEN lets the
+LinkedIn comments job read public posts; without it the job says so and stages nothing.
 """
 import datetime, json, os, re, subprocess, sys, traceback, urllib.error, urllib.parse, urllib.request
 from zoneinfo import ZoneInfo
@@ -30,7 +33,7 @@ JOB_TIMEOUT = 25 * 60    # seconds per report job
 ALLOWED_TOOLS = ['Read', 'Write', 'Glob', 'Grep', 'Bash(python3 athena/db.py:*)',
                  'Bash(python3 athena/blotato.py:*)', 'Bash(python3 athena/media.py:*)',
                  'Bash(python3 athena/ideas.py:*)', 'Bash(python3 athena/site.py:*)',
-                 'Bash(python3 athena/gcal.py:*)']
+                 'Bash(python3 athena/gcal.py:*)', 'Bash(python3 athena/linkedin.py:*)']
 BRIEF_TYPES = {'monday_plan': 'Monday plan', 'friday_wrap': 'Friday wrap'}
 FIELDS = ['client_hours', 'colibrios_hours', 'decision_needed', 'gone_quiet', 'carry_over']
 
@@ -127,13 +130,17 @@ def chat_prompt(req, history, job):
 
 def report_prompt(job):
     title = job['title']
-    hand_back = (f'## What to hand back\n\nYour final reply is the {title} itself, in Markdown, ready for her to read on '
-                 f'her Today page. The app saves it for you, so do not save it with db.py, and do not add anything '
+    desk = job['key'] == 'linkedin_comments'
+    where = 'the Comment desk on her Marketing page' if desk else 'her Today page'
+    hand_back = (f'## What to hand back\n\nYour final reply is the {title}{" brief" if desk else ""} itself, in Markdown, ready for her to read on '
+                 f'{where}. The app saves it for you, so do not save it with db.py, and do not add anything '
                  f'before or after it: no "Here is your brief", no notes about what you did. Start with the content.')
     if job['key'] in BRIEF_TYPES:
         hand_back += ('\n\nAfter it, end with one fenced json block, which the app reads and removes:\n\n'
                       '```json\n{"client_hours": number or null, "colibrios_hours": number or null, '
                       '"decision_needed": "one line, or null", "gone_quiet": "one line, or null", "carry_over": "one line, or null"}\n```')
+    if desk:  # no calls, no calendar: this run is about other people's posts
+        return f'{job["prompt"]}\n\n{read("LINKEDIN.md")}\n\n{hand_back}\n\nRight now it is {mountain_now()}.'
     return (f'{job["prompt"]}\n\n{read("JOBS.md")}\n\n{read("CALLS.md")}\n\n{hand_back}\n\n'
             f'Right now it is {mountain_now()}.\n\n{calendar_for(job["key"])}')
 
@@ -181,8 +188,22 @@ def split_fields(text):
     return text[:m.start()].strip(), fields
 
 
+def save_page(title, text, note):
+    today = local_now().date()
+    rows = api('GET', f'pages?title=eq.{q(title)}&folder=eq.Athena&deleted_at=is.null&select=id,extra&limit=1')
+    if rows:
+        extra = dict(rows[0].get('extra') or {})
+        extra['Date'] = today.isoformat()
+        api('PATCH', f'pages?id=eq.{q(rows[0]["id"])}', {'body': text, 'extra': extra})
+    else:
+        api('POST', 'pages', {'title': title, 'folder': 'Athena', 'body': text, 'extra': {'Date': today.isoformat()}})
+    return note
+
+
 def save_report(job, text):
     today = local_now().date()
+    if job['key'] == 'linkedin_comments':
+        return save_page('LinkedIn comments', text, 'Saved to the Comment desk on the Marketing page.')
     if job['key'] == 'daily_brief':
         rows = api('GET', 'pages?title=eq.Daily%20brief&folder=eq.Athena&deleted_at=is.null&select=id,extra&limit=1')
         if rows:

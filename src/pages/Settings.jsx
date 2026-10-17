@@ -4,7 +4,7 @@ import { SUPABASE_URL, supabase } from '../lib/supabase.js';
 import { DAY_NAMES, runJob, scheduleText, useJobs } from '../lib/jobs.js';
 import { Panel, Skel } from '../components/bits.jsx';
 
-const ORDER = ['daily_brief', 'monday_plan', 'friday_wrap', 'level10'];
+const ORDER = ['daily_brief', 'monday_plan', 'friday_wrap', 'linkedin_comments', 'level10'];
 const fWhen = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Denver', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
 export default function Settings() {
@@ -52,7 +52,8 @@ function JobRow({ job, run, store, onEdit, onStart }) {
   const timed = !!job.run_at;
   const go = async () => {
     setMsg('');
-    try { const { startError } = await runJob(job); setMsg(startError || 'Started. It shows on your Today page when it is done, usually within 5 minutes.'); await store.reload(); }
+    const lands = job.key === 'linkedin_comments' ? 'the Comment desk on your Marketing page' : 'your Today page';
+    try { const { startError } = await runJob(job); setMsg(startError || `Started. It shows on ${lands} when it is done, usually within 5 minutes.`); await store.reload(); }
     catch (e) { setMsg(e.message); }
   };
   const toggle = async (e) => { try { await store.save(job.key, { enabled: e.target.checked }); } catch (err) { setMsg(err.message); } };

@@ -339,3 +339,12 @@ details summary{cursor:pointer;font-weight:700}
 .piece-media .tile{cursor:default}
 .piece-media a.btn{text-decoration:none}
 .piece-media .tile .linkbtn{justify-self:start;font-size:13px}
+
+/* Comment desk (Marketing) */
+.desk-person{padding:12px 0;border-top:1px solid var(--line)}
+.desk-person:first-of-type{border-top:0}
+.desk-head{display:grid;gap:3px;margin-bottom:6px}
+.draft{padding:8px 0 10px}
+.draft+.draft{border-top:1px dashed var(--line)}
+.draft-text{white-space:pre-wrap;background:var(--accent-soft);padding:10px 12px;border-radius:10px;margin:6px 0 8px;line-height:1.5}
+.desk .job select{max-width:150px}

@@ -42,4 +42,6 @@ jobs:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           # Lets Athena make post images in Blotato (athena/POSTS.md). Never used to post.
           BLOTATO_API_KEY: ${{ secrets.BLOTATO_API_KEY }}
+          # Lets the LinkedIn comments job read public posts through Apify (athena/linkedin.py). Never writes to LinkedIn.
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
         run: python3 athena/answer.py

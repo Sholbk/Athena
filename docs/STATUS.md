@@ -1,6 +1,6 @@
 # Athena status
 
-Last updated Oct 14, 2026.
+Last updated Oct 17, 2026.
 
 ## Live
 
@@ -20,11 +20,12 @@ Supabase project: `dgjbzkslgjqsopjzzeqy` (named Athena).
 | Library tab: the AI Bootcamp notes from the vault's `AI Bootcamp` folder, to search and read (edits happen in Obsidian) | Done Oct 15 |
 | Call to-dos: Granola calls sync into the vault's `Meetings` folder (Obsidian plugin). Athena turns her to-dos into tasks (rules in `athena/CALLS.md`, log page "Calls read"), each weekday morning before the brief or when asked in chat | Done Oct 15 |
 | Marketing > Media: her own photos and finished posts in the private Storage bucket `media` (table `media`, migration applied by hand in the SQL editor because the project sits in the Dragonfly Free Accounts org). Photos shrink to 2048 px; free plan is 1 GB, 50 MB a file. Athena reads titles and tags | Done Oct 16 |
+| Marketing > Comment desk: LinkedIn comment-first warm-up. Tables `linkedin_people` (who she watches) and `linkedin_comments` (Athena's drafts). Job "LinkedIn comments" (weekdays 7:20 AM, off until she turns it on, Run now on the desk) reads their public posts through Apify (`athena/linkedin.py`, rules in `athena/LINKEDIN.md`), drafts one comment per good post, and saves its brief as the page "LinkedIn comments". She copies, edits and posts by hand and presses "I posted it"; "Ready to connect" follows a day later. The app never touches LinkedIn | Done Oct 17 |
 | Idea bank image prompts: per seed, a ChatGPT prompt (the picture) and a Claude prompt (PNG slides). Athena writes them on request (rules in `athena/IMAGES.md`, 12 seeds a run) into the page "Image prompts"; the Idea bank reads that page | Done Oct 16 |
 
 ## Secrets in place
 
-- GitHub Actions: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `VAULT_TOKEN` (fine-grained, athena-vault contents rw), `CLAUDE_CODE_OAUTH_TOKEN`.
+- GitHub Actions: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `VAULT_TOKEN` (fine-grained, athena-vault contents rw), `CLAUDE_CODE_OAUTH_TOKEN`, `BLOTATO_API_KEY`, `APIFY_TOKEN` (LinkedIn comments scan, worst case about $0.60 for 50 people, capped at $1.00 a run).
 - Supabase Edge Function secret: `GITHUB_DISPATCH_TOKEN` (fine-grained, Sholbk/Athena contents rw).
 - Netlify env: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
 
@@ -38,6 +39,7 @@ Nothing runs in claude.ai. The four claude.ai routines were retired Oct 14.
 | Monday plan | Mon, 6:55 AM | new `briefs` row, Today page |
 | Friday wrap | Fri, 3:58 PM | new `briefs` row, Today page |
 | Level 10 with Metis | Start Level 10 button (EOS page or Settings) | Athena tab conversation; Metis writes Rocks, Scorecard, Issues, Level 10 and tasks |
+| LinkedIn comments | Mon to Fri, 7:20 AM (off until turned on), or Run now on the Comment desk | `linkedin_comments` rows plus the `pages` row "LinkedIn comments", Marketing > Comment desk |
 
 How it runs: `pg_cron` calls `athena_tick()` every 5 minutes. A job fires once a day, inside 90 minutes of its time, on its days. It inserts an `athena_requests` row with `job` set and `pg_net` calls `athena-dispatch`, which starts the Athena workflow. `athena/answer.py` runs it and saves the result. Run now buttons take the same path from the app.
 
