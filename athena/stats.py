@@ -430,8 +430,14 @@ def summary(weeks):
         for m in api('GET', f'post_metrics?post_id=in.({ids})&select=post_id,fetched_at,views,reach,likes,comments,saves,shares,follows,clicks&order=fetched_at.desc') or []:
             latest.setdefault(m['post_id'], {k: m.get(k) for k in METRICS})
     out = summarize(posts, latest, weeks)
-    print(json.dumps({'weeks': out, 'note': 'Each week starts on its Monday. Blank means not collected, never zero. '
-                      'LinkedIn has reactions, comments and shares only.'}, ensure_ascii=False, indent=1))
+    first = today() - datetime.timedelta(days=today().weekday() + 7 * (weeks - 1))
+    older = sum(1 for p in posts if datetime.datetime.fromisoformat(p['posted_at'].replace('Z', '+00:00')).astimezone(TZ).date() < first)
+    print(json.dumps({'window': {'from': first.isoformat(), 'to': today().isoformat(), 'weeks': weeks},
+                      'posts_in_window': sum(v['posts'] for wk in out.values() for v in wk['platforms'].values()),
+                      'older_posts_left_out': older,
+                      'weeks': out, 'note': f'Only posts from {first.isoformat()} on are counted; older posts on record are left out on purpose. '
+                      'Each week starts on its Monday. Blank means not collected, never zero. LinkedIn has reactions, comments and shares only.'},
+                     ensure_ascii=False, indent=1))
 
 
 def main():
