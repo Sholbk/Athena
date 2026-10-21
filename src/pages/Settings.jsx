@@ -18,6 +18,7 @@ export default function Settings() {
           <PostingDays />
           <GoogleCalendar />
           <WonderReel />
+          <Apify />
           <LinkedInProfile />
         </div>
       </div>
@@ -230,6 +231,59 @@ function WonderReel() {
           <li>In WonderReel, click your email at the top left to open Settings.</li>
           <li>Find <b>Claude MCP Access (Pro)</b>. Under <b>Step 2</b>, click <b>Copy URL</b>.</li>
           <li>Paste it above and click Save. It holds your WonderReel key, so it stays hidden here.</li>
+        </ol>
+      </details>
+      {note && <p className="small">{note}</p>}
+      {msg && <p className="form-msg">{msg}</p>}
+    </Panel>
+  );
+}
+
+/* ---------- Apify ---------- */
+// Her Apify token lets the LinkedIn comments job and Post numbers read public LinkedIn posts.
+// Saved here, never read back into the page.
+function Apify() {
+  const [linked, setLinked] = useState(undefined);
+  const [token, setToken] = useState('');
+  const [msg, setMsg] = useState('');
+  const [note, setNote] = useState('');
+  const load = useCallback(async () => {
+    const { data, error } = await supabase.from('connections').select('key,updated_at').eq('key', 'apify').maybeSingle();
+    if (error) setMsg(error.message); else setLinked(data);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const save = async (e) => {
+    e.preventDefault(); setMsg(''); setNote('');
+    const value = token.trim();
+    if (!/^apify_api_[A-Za-z0-9]{20,}$/.test(value)) return setMsg('That is not an Apify API token. It starts with apify_api_ and has no spaces. Find it in Apify under Settings, API & Integrations.');
+    const { error } = await supabase.from('connections').upsert({ key: 'apify', data: { token: value }, updated_at: new Date().toISOString() });
+    if (error) return setMsg(error.message);
+    setToken(''); setNote('Saved. The next LinkedIn comments run and Post numbers run use it.'); load();
+  };
+  const remove = async () => {
+    if (!confirm('Remove the Apify token? LinkedIn scans stop until you add one again.')) return;
+    const { error } = await supabase.from('connections').delete().eq('key', 'apify');
+    setNote('');
+    if (error) setMsg(error.message); else { setNote('Removed.'); load(); }
+  };
+
+  return (
+    <Panel title="Apify" eyebrow="Reads public LinkedIn posts">
+      <p className="muted small" style={{ marginTop: 0 }}>Your Apify API token. The Comment desk and Post numbers use it to read public LinkedIn posts, a few cents a run. Nothing signs in to LinkedIn.</p>
+      {linked === undefined ? <Skel /> : linked
+        ? <div className="job"><div className="job-main"><span className="card-title">Saved</span><span className="small muted">Since {fWhen.format(new Date(linked.updated_at))}</span></div><button className="linkbtn danger" type="button" onClick={remove}>Remove</button></div>
+        : <p className="empty">Not saved yet.</p>}
+      <form className="cal-add wr-add" onSubmit={save}>
+        <label className="f">{linked ? 'Replace the token' : 'Your Apify API token'}<input type="password" autoComplete="off" value={token} onChange={(e) => setToken(e.target.value)} placeholder="apify_api_…" /></label>
+        <button className="btn" type="submit" disabled={!token.trim()}>Save</button>
+      </form>
+      <details className="small muted">
+        <summary>Where to find it</summary>
+        <ol>
+          <li>In Apify, open <b>Settings</b>, then <b>API &amp; Integrations</b>.</li>
+          <li>Under <b>Personal API tokens</b>, click the copy icon on your token, or create a new one and copy it.</li>
+          <li>Paste it above and click Save. It stays hidden here.</li>
         </ol>
       </details>
       {note && <p className="small">{note}</p>}

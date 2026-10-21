@@ -11,7 +11,7 @@
                                                          put one draft comment on the desk
 
 The scan runs the Apify Actor harvestapi/linkedin-profile-posts (public posts, no LinkedIn login)
-and needs APIFY_TOKEN. It never writes to LinkedIn. Each person costs about $0.002 a post found
+and needs her Apify token (Settings > Apify in the app, or the APIFY_TOKEN secret). It never writes to LinkedIn. Each person costs about $0.002 a post found
 and $0.001 when nothing is found; the cap is passed to Apify as maxTotalChargeUsd and checked
 here first, so a scan never costs more than the cap. Output is JSON. Standard library only.
 """
@@ -69,11 +69,19 @@ def post_key(link):
     return 'a' + m.group(1) if m else None
 
 
+def apify_token():
+    """Her Apify token: Settings > Apify in the app first (connections key apify), then the
+    APIFY_TOKEN secret. Empty when neither is set."""
+    rows = api('GET', 'connections?key=eq.apify&select=data')
+    saved = ((rows[0].get('data') or {}).get('token') if rows else None) or ''
+    return saved.strip() or (os.environ.get('APIFY_TOKEN') or '').strip()
+
+
 # ---------- Apify ----------
 def apify(method, path, body=None, params=None):
-    token = os.environ.get('APIFY_TOKEN')
+    token = apify_token()
     if not token:
-        sys.exit('Apify is not connected: the APIFY_TOKEN secret is missing. Say so in the brief and stage nothing new.')
+        sys.exit('Apify is not connected: paste the token in Settings > Apify in the app. Say so in the brief and stage nothing new.')
     params = dict(params or {}, token=token)
     url = f'{APIFY}/{path}?' + urllib.parse.urlencode(params)
     r = urllib.request.Request(url, data=json.dumps(body).encode() if body is not None else None, method=method,

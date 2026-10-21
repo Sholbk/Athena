@@ -24,7 +24,7 @@ Markdown, short, in this order:
 1. One line: how many posts came in or were updated, and the date range covered.
 2. "This week": the best post by Instagram reach and the best by LinkedIn reactions, each with its date, its first few words and the numbers. If a week has no posts, say "No posts went out this week."
 3. "Last 4 weeks": one line per week with posts, reach, views, engagement, from `summary`.
-4. "Did not work": anything skipped and why, one line each. Leave this out when nothing was skipped. If Apify answered 401, say "The Apify token is not valid: make a new API token at console.apify.com and set the APIFY_TOKEN secret" and nothing more about it.
+4. "Did not work": anything skipped and why, one line each. Leave this out when nothing was skipped. If the Apify token is not valid, say "The Apify token is not valid: paste a new one in Settings > Apify" and nothing more about it.
 5. Last line: the Apify cost (the run's cost when printed, otherwise "about" the estimate).
 
 Dates as "Oct 17". Numbers exactly as printed; blank means not collected, never zero. No em dashes anywhere. No advice unless a number asks for it, and then one line at most.

@@ -6,8 +6,8 @@
 
 pull reads her published Instagram and Facebook posts from Blotato (GET /published-posts and
 /posts/{id}/analytics, BLOTATO_API_KEY) with the numbers Blotato collected, and her own public
-LinkedIn posts through the Apify Actor harvestapi/linkedin-profile-posts (APIFY_TOKEN, profile
-link from the connections row linkedin_profile): reactions, comments and shares, since LinkedIn
+LinkedIn posts through the Apify Actor harvestapi/linkedin-profile-posts (token from Settings > Apify,
+profile link from the connections row linkedin_profile): reactions, comments and shares, since LinkedIn
 shows impressions only to her. Everything lands in the tables posts and post_metrics, and each
 post is tied to the content piece it came from when the post link or the caption matches.
 
@@ -104,6 +104,14 @@ def caption_key(text):
 def post_key(link):
     m = re.search(r'activity[-:](\d+)', link or '')
     return 'a' + m.group(1) if m else None
+
+
+def apify_token():
+    """Her Apify token: Settings > Apify in the app first (connections key apify), then the
+    APIFY_TOKEN secret. Empty when neither is set."""
+    rows = api('GET', 'connections?key=eq.apify&select=data')
+    saved = ((rows[0].get('data') or {}).get('token') if rows else None) or ''
+    return saved.strip() or (os.environ.get('APIFY_TOKEN') or '').strip()
 
 
 def iso(ts):
@@ -248,8 +256,7 @@ def post_history(pid):
 
 
 # ---------- Apify (LinkedIn) ----------
-def apify(method, path, body=None, params=None):
-    token = os.environ.get('APIFY_TOKEN')
+def apify(method, path, body=None, params=None, token=''):
     params = dict(params or {}, token=token)
     url = f'{APIFY}/{path}?' + urllib.parse.urlencode(params)
     r = urllib.request.Request(url, data=json.dumps(body).encode() if body is not None else None, method=method,
@@ -265,8 +272,9 @@ def profile_slug(url):
 
 def linkedin_items(profile_url, cap):
     """Her newest public posts through Apify. Returns (items, cost, error)."""
-    if not os.environ.get('APIFY_TOKEN'):
-        return [], None, 'Apify is not connected: the APIFY_TOKEN secret is missing, so LinkedIn was skipped.'
+    token = apify_token()
+    if not token:
+        return [], None, 'Apify is not connected: paste the token in Settings > Apify in the app. LinkedIn was skipped.'
     estimate = round(START_PRICE + MAX_LINKEDIN_POSTS * POST_PRICE, 3)
     if estimate > cap:
         return [], None, f'The LinkedIn scan would cost about ${estimate:.2f}, more than the cap of ${cap:.2f}, so it was skipped.'
@@ -274,16 +282,18 @@ def linkedin_items(profile_url, cap):
         run = apify('POST', f'acts/{ACTOR}/runs',
                     body={'targetUrls': [profile_url], 'postedLimit': 'month', 'includeReposts': False,
                           'includeQuotePosts': False, 'maxPosts': MAX_LINKEDIN_POSTS},
-                    params={'maxTotalChargeUsd': f'{cap:.2f}', 'waitForFinish': 60})['data']
+                    params={'maxTotalChargeUsd': f'{cap:.2f}', 'waitForFinish': 60}, token=token)['data']
         deadline = time.time() + 8 * 60
         while run['status'] in ('READY', 'RUNNING') and time.time() < deadline:
             time.sleep(10)
-            run = apify('GET', f'actor-runs/{run["id"]}')['data']
+            run = apify('GET', f'actor-runs/{run["id"]}', token=token)['data']
         if run['status'] != 'SUCCEEDED':
             return [], run.get('usageTotalUsd'), f'The Apify run ended as {run["status"]} (run {run["id"]}), so LinkedIn was skipped.'
-        items = apify('GET', f'datasets/{run["defaultDatasetId"]}/items', params={'clean': 'true', 'format': 'json'}) or []
+        items = apify('GET', f'datasets/{run["defaultDatasetId"]}/items', params={'clean': 'true', 'format': 'json'}, token=token) or []
         return items, run.get('usageTotalUsd'), None
     except urllib.error.HTTPError as e:
+        if e.code == 401:
+            return [], None, 'The Apify token is not valid. Paste a new one in Settings > Apify in the app.'
         return [], None, f'Apify said {e.code}: {e.read().decode()[:200]}'
     except (urllib.error.URLError, KeyError, ValueError) as e:
         return [], None, f'Could not reach Apify: {e}'
