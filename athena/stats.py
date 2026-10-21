@@ -26,7 +26,7 @@ LOOKBACK_DAYS = 90       # Blotato keeps refreshing old posts for weeks, so ever
 PAGE = 50                # published-posts page size (Blotato allows up to 100)
 MAX_LINKEDIN_POSTS = 20
 POST_PRICE, START_PRICE = 0.002, 0.00005
-BLOTATO_PLATFORMS = {'instagram', 'facebook', 'twitter', 'youtube', 'tiktok', 'pinterest', 'threads', 'bluesky'}
+BLOTATO_PLATFORMS = {'instagram', 'facebook', 'twitter', 'youtube'}   # what posts.platform allows; the rest become 'other'
 POST_COLS = 'id,platform,source,external_id,post_url,posted_at,caption,content_id'
 CONTENT_COLS = 'id,title,body,target_date,posted_at,post_url'
 # Our column -> Blotato's field names, first one found wins.
@@ -141,6 +141,17 @@ def match_content(post, pieces):
             if a and abs((datetime.date.fromisoformat(posted) - datetime.date.fromisoformat(a)).days) <= 3:
                 return c['id']
     return None
+
+
+def dedupe_pairs(pairs):
+    """One snapshot per moment. Blotato's latestMetrics repeats the last history entry, and a unique
+    index on (post_id, fetched_at) would refuse the twin. First one in wins; order is kept."""
+    seen, out = set(), []
+    for at, s in pairs:
+        if at and s and at not in seen:
+            seen.add(at)
+            out.append((at, s))
+    return out
 
 
 def week_of(ymd):
@@ -340,7 +351,7 @@ class Store:
         if not pairs:
             return 0
         have = {iso(r['fetched_at']) for r in api('GET', f'post_metrics?post_id=eq.{q(post_id)}&select=fetched_at') or []}
-        rows = [{'post_id': post_id, 'fetched_at': at, **s} for at, s in pairs if at not in have]
+        rows = [{'post_id': post_id, 'fetched_at': at, **s} for at, s in dedupe_pairs(pairs) if at not in have]
         if rows:
             api('POST', 'post_metrics', rows, prefer='return=minimal')
             self.snapshots += len(rows)

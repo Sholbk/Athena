@@ -32,7 +32,7 @@ export default function ContentDrawer({ row, store, onClose }) {
     setBusy(true); setMsg('');
     try {
       // The moment it shipped is kept once, on the flip to Shipped; later saves leave it alone.
-      const shipped = patch.status === 'Shipped' && !row.posted_at ? { posted_at: new Date().toISOString() } : {};
+      const shipped = next.status === 'Shipped' && row.status !== 'Shipped' && !row.posted_at ? { posted_at: new Date().toISOString() } : {};
       await store.save(row.id, {
         title: next.title.trim() || row.title, status: next.status, channel: next.channel || null,
         product: next.product || null, target_date: next.target_date || null, cta: next.cta || null,

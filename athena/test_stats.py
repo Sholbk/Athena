@@ -30,6 +30,13 @@ class Snapshots(unittest.TestCase):
     def test_impressions_count_as_views(self):
         self.assertEqual(stats.snapshot({'impressionsCount': '120'})['views'], 120)
 
+    def test_same_moment_saved_once(self):
+        s = stats.snapshot(IG_METRICS)
+        pairs = [('2026-10-02T18:53:26+00:00', stats.snapshot(FB_METRICS)), ('2026-10-09T20:17:09+00:00', s),
+                 ('2026-10-09T20:17:09+00:00', s), (None, s), ('2026-10-10T00:00:00+00:00', None)]
+        out = stats.dedupe_pairs(pairs)
+        self.assertEqual([at for at, _ in out], ['2026-10-02T18:53:26+00:00', '2026-10-09T20:17:09+00:00'])
+
     def test_iso_normalizes_spellings(self):
         self.assertEqual(stats.iso('2026-10-09T20:17:09.962Z'), stats.iso('2026-10-09T20:17:09+00:00'))
         self.assertEqual(stats.iso('2026-10-09T14:17:09-06:00'), '2026-10-09T20:17:09+00:00')
