@@ -18,6 +18,7 @@ export default function Settings() {
           <PostingDays />
           <GoogleCalendar />
           <WonderReel />
+          <Blotato />
           <Apify />
           <LinkedInProfile />
         </div>
@@ -231,6 +232,59 @@ function WonderReel() {
           <li>In WonderReel, click your email at the top left to open Settings.</li>
           <li>Find <b>Claude MCP Access (Pro)</b>. Under <b>Step 2</b>, click <b>Copy URL</b>.</li>
           <li>Paste it above and click Save. It holds your WonderReel key, so it stays hidden here.</li>
+        </ol>
+      </details>
+      {note && <p className="small">{note}</p>}
+      {msg && <p className="form-msg">{msg}</p>}
+    </Panel>
+  );
+}
+
+/* ---------- Blotato ---------- */
+// Her Blotato API key lets the content drawer send posts to her Blotato accounts, and lets
+// Athena make post images and read post numbers. Saved here, never read back into the page.
+function Blotato() {
+  const [linked, setLinked] = useState(undefined);
+  const [token, setToken] = useState('');
+  const [msg, setMsg] = useState('');
+  const [note, setNote] = useState('');
+  const load = useCallback(async () => {
+    const { data, error } = await supabase.from('connections').select('key,updated_at').eq('key', 'blotato').maybeSingle();
+    if (error) setMsg(error.message); else setLinked(data);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const save = async (e) => {
+    e.preventDefault(); setMsg(''); setNote('');
+    const value = token.trim();
+    if (!/^[A-Za-z0-9_.-]{20,}$/.test(value)) return setMsg('That does not look like a Blotato API key: one long run of letters and numbers, no spaces. Find it in Blotato under Settings, API.');
+    const { error } = await supabase.from('connections').upsert({ key: 'blotato', data: { token: value }, updated_at: new Date().toISOString() });
+    if (error) return setMsg(error.message);
+    setToken(''); setNote('Saved. Send to Blotato works from the next post you open.'); load();
+  };
+  const remove = async () => {
+    if (!confirm('Remove the Blotato key? Sending posts and reading numbers stop until you add one again.')) return;
+    const { error } = await supabase.from('connections').delete().eq('key', 'blotato');
+    setNote('');
+    if (error) setMsg(error.message); else { setNote('Removed.'); load(); }
+  };
+
+  return (
+    <Panel title="Blotato" eyebrow="Send posts, read numbers">
+      <p className="muted small" style={{ marginTop: 0 }}>Your Blotato API key. With it, a post in Marketing can be sent to your Blotato accounts from its drawer (your click, every time), Athena can make post images, and Results can read your numbers.</p>
+      {linked === undefined ? <Skel /> : linked
+        ? <div className="job"><div className="job-main"><span className="card-title">Saved</span><span className="small muted">Since {fWhen.format(new Date(linked.updated_at))}</span></div><button className="linkbtn danger" type="button" onClick={remove}>Remove</button></div>
+        : <p className="empty">Not saved yet.</p>}
+      <form className="cal-add wr-add" onSubmit={save}>
+        <label className="f">{linked ? 'Replace the key' : 'Your Blotato API key'}<input type="password" autoComplete="off" value={token} onChange={(e) => setToken(e.target.value)} placeholder="Paste it here" /></label>
+        <button className="btn" type="submit" disabled={!token.trim()}>Save</button>
+      </form>
+      <details className="small muted">
+        <summary>Where to find it</summary>
+        <ol>
+          <li>In Blotato, open <b>Settings</b>, then <b>API</b>.</li>
+          <li>Copy your API key.</li>
+          <li>Paste it above and click Save. It stays hidden here.</li>
         </ol>
       </details>
       {note && <p className="small">{note}</p>}

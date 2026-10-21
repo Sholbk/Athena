@@ -10,7 +10,7 @@ for up to 90 seconds; run it again until it says done. When done it prints the i
 and the page where Stephanie can open the design in Blotato.
 
 This only makes designs. It has no way to post or schedule anything: Stephanie posts herself.
-Needs BLOTATO_API_KEY. Standard library only.
+Needs her Blotato key (Settings > Blotato in the app, or BLOTATO_API_KEY). Standard library only.
 """
 import argparse, json, os, re, sys, time, urllib.error, urllib.parse, urllib.request
 
@@ -21,10 +21,28 @@ PATIENCE = 90   # seconds per wait call, so one call stays inside a tool call's 
 EVERY = 15      # Blotato asks for at least 15 seconds between checks
 
 
+def blotato_key():
+    """Her Blotato key: Settings > Blotato in the app (connections key blotato) first, then the
+    BLOTATO_API_KEY secret. Empty when neither is set."""
+    url = os.environ.get('SUPABASE_URL', '').rstrip('/')
+    srk = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
+    saved = ''
+    if url and srk:
+        try:
+            r = urllib.request.Request(url + '/rest/v1/connections?key=eq.blotato&select=data',
+                                       headers={'apikey': srk, 'Authorization': f'Bearer {srk}'})
+            with urllib.request.urlopen(r, timeout=30) as resp:
+                rows = json.loads(resp.read().decode() or '[]')
+            saved = ((rows[0].get('data') or {}).get('token') if rows else None) or ''
+        except (urllib.error.URLError, ValueError):
+            saved = ''
+    return saved.strip() or (os.environ.get('BLOTATO_API_KEY') or '').strip()
+
+
 def call(method, path, body=None):
-    key = os.environ.get('BLOTATO_API_KEY')
+    key = blotato_key()
     if not key:
-        sys.exit('BLOTATO_API_KEY is not set, so no image can be made. Save the caption and say the image is waiting on the Blotato key.')
+        sys.exit('The Blotato key is not set (Settings > Blotato in the app), so no image can be made. Save the caption and say the image is waiting on the Blotato key.')
     h = {'blotato-api-key': key, 'Content-Type': 'application/json', 'Accept': 'application/json'}
     r = urllib.request.Request(API + path, data=json.dumps(body).encode() if body is not None else None, method=method, headers=h)
     try:

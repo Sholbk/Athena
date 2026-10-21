@@ -362,3 +362,13 @@ table.results-table th:first-child,table.results-table td:first-child{min-width:
 .results-table tr.sub td:first-child{background:var(--soft)}
 .linkbtn.left{text-align:left}
 .results > .small{margin:10px 0 0}
+
+/* Send to Blotato (content drawer) */
+.send{border-top:1px solid var(--line);padding-top:12px;display:grid;gap:8px}
+.send .label-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.sends{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.sends li{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;font-size:13.5px}
+.acct-list{display:grid;gap:4px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.send .calopt{white-space:nowrap}
+.send input[type=datetime-local]{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
+.plain-list{margin:0;padding-left:18px}

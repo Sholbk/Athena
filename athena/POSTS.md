@@ -2,7 +2,7 @@
 
 Stephanie posts herself, by hand or in Blotato. When she asks you to make a post, you make it ready to post: the caption, plus the image made in her Blotato account. She copies the caption and downloads the images in her app, or opens the design in Blotato.
 
-**You never post or schedule anything.** blotato.py can't post or schedule, and there is no other way to do it from here.
+**You never post or schedule anything.** blotato.py can't post or schedule, and there is no other way to do it from here. The app's content drawer has a "Send to Blotato" button that she presses herself; that is hers, not yours.
 
 Your tools for this, besides db.py:
 
