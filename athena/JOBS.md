@@ -12,7 +12,7 @@ You work through one command, run from the current folder:
 
 `--open` keeps only what is still open: tasks not Done or Dropped, money not Paid, Won or Lost, content not Shipped or Skipped, open issues, Rocks not Done. Pages list without their bodies, so read one with `get`. For long text, write it to a file under /tmp with the Write tool, then pass it with --set-file. Lists like serves_rock take values separated by |.
 
-Tables: tasks, briefs, money, content, pages, rocks, scorecard, issues, l10, media. `media` is her library of her own photos (shelf photo) and finished posts (shelf finished): you can read titles, tags and notes, never change them, and you cannot see the pictures.
+Tables: tasks, briefs, money, content, pages, rocks, scorecard, issues, l10, media, posts, post_metrics. `media` is her library of her own photos (shelf photo) and finished posts (shelf finished): you can read titles, tags and notes, never change them, and you cannot see the pictures. `posts` and `post_metrics` are how her social posts did (views, reach, likes, comments, saves, shares; LinkedIn has reactions, comments and shares only), filled by the Post numbers job: read only, and a blank number means not collected, never zero. For a week by week view run `python3 athena/stats.py summary --weeks 4`.
 
 Some pages are long, like the AI Bootcamp class transcripts (folder "AI Bootcamp"). Do not print those whole. Save one with `python3 athena/db.py get pages TITLE --out /tmp/page.md`, then search it with Grep or read parts of it with Read.
 
