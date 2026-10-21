@@ -7,7 +7,7 @@ Your tools, run from the current folder:
     python3 athena/stats.py pull --cap 0.20
     python3 athena/stats.py summary --weeks 4
 
-`pull` reads her published Instagram and Facebook posts from Blotato (with the numbers Blotato collected, about once a week) and her own public LinkedIn posts through Apify (reactions, comments, shares; LinkedIn shows impressions only to her, so there are none here). It saves posts and snapshots to the tables posts and post_metrics, ties each post to the content piece it came from when it can, and prints one JSON line with what happened. `summary` prints, per week and per platform, how many posts went out and their reach, views and engagement (likes + comments + saves + shares), newest week first, plus the best post of each week.
+`pull` reads her published Instagram and Facebook posts from Blotato (with the numbers Blotato collected, about once a week) and her own public LinkedIn posts through Apify (reactions, comments, shares; LinkedIn shows impressions only to her, so there are none here). It saves posts and snapshots to the tables posts and post_metrics, ties each post to the content piece it came from when it can, and prints one JSON line with what happened. `summary` prints, per week and per platform, how many posts went out and their reach, views and engagement (likes + comments + saves + shares), newest week first, plus the best post of each week. It covers only the last 4 weeks (its `window`); older posts on record are left out on purpose, so never call them missing.
 
 Your only writes are what `pull` does and the note you hand back. Never post, schedule, like, comment or follow anywhere, and never touch Apify beyond the one scan inside `pull`.
 
@@ -24,7 +24,7 @@ Markdown, short, in this order:
 1. One line: how many posts came in or were updated, and the date range covered.
 2. "This week": the best post by Instagram reach and the best by LinkedIn reactions, each with its date, its first few words and the numbers. If a week has no posts, say "No posts went out this week."
 3. "Last 4 weeks": one line per week with posts, reach, views, engagement, from `summary`.
-4. "Did not work": anything skipped and why, one line each. Leave this out when nothing was skipped.
+4. "Did not work": anything skipped and why, one line each. Leave this out when nothing was skipped. If Apify answered 401, say "The Apify token is not valid: make a new API token at console.apify.com and set the APIFY_TOKEN secret" and nothing more about it.
 5. Last line: the Apify cost (the run's cost when printed, otherwise "about" the estimate).
 
 Dates as "Oct 17". Numbers exactly as printed; blank means not collected, never zero. No em dashes anywhere. No advice unless a number asks for it, and then one line at most.
