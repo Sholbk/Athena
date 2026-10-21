@@ -41,6 +41,7 @@ Nothing runs in claude.ai. The four claude.ai routines were retired Oct 14.
 | Friday wrap | Fri, 3:58 PM | new `briefs` row, Today page |
 | Level 10 with Metis | Start Level 10 button (EOS page or Settings) | Athena tab conversation; Metis writes Rocks, Scorecard, Issues, Level 10 and tasks |
 | LinkedIn comments | Mon to Fri, 7:20 AM (off until turned on), or Run now on the Comment desk | `linkedin_comments` rows plus the `pages` row "LinkedIn comments", Marketing > Comment desk |
+| Send to Blotato (not a job): in a post's drawer she picks accounts (Instagram, LinkedIn, the Dragonfly page, X) and a time, confirms, and the edge function `blotato-post` uploads the images and sends one post per account with her Blotato key from Settings > Blotato (`connections` key `blotato`). Rows in `post_submissions`; Check status flips the piece to Shipped with its link; scheduled sends can be cancelled. YouTube and Facebook stay out | her click, any time |
 | Post numbers | Mon, 7:00 AM (off until turned on), or Refresh numbers on Marketing > Results | `posts` and `post_metrics` rows plus the `pages` row "Post numbers", Marketing > Results |
 
 How it runs: `pg_cron` calls `athena_tick()` every 5 minutes. A job fires once a day, inside 90 minutes of its time, on its days. It inserts an `athena_requests` row with `job` set and `pg_net` calls `athena-dispatch`, which starts the Athena workflow. `athena/answer.py` runs it and saves the result. Run now buttons take the same path from the app.

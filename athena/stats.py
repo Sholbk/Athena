@@ -202,9 +202,22 @@ def summarize(posts, latest, weeks, today_=None):
 
 
 # ---------- Blotato ----------
+_BLOTATO_KEY = None
+
+
+def blotato_key():
+    """Her Blotato key: Settings > Blotato in the app (connections key blotato) first, then the secret."""
+    global _BLOTATO_KEY
+    if _BLOTATO_KEY is None:
+        rows = api('GET', 'connections?key=eq.blotato&select=data')
+        saved = ((rows[0].get('data') or {}).get('token') if rows else None) or ''
+        _BLOTATO_KEY = saved.strip() or (os.environ.get('BLOTATO_API_KEY') or '').strip()
+    return _BLOTATO_KEY
+
+
 def blotato(path, params=None):
     """GET from Blotato. Returns (status, body). No key -> (0, None). Errors are answers, not crashes."""
-    key = os.environ.get('BLOTATO_API_KEY')
+    key = blotato_key()
     if not key:
         return 0, None
     url = BLOTATO + path + ('?' + urllib.parse.urlencode(params) if params else '')
@@ -228,7 +241,7 @@ def published_posts(since):
             limit = 20  # the page size was refused, use Blotato's default
             continue
         if status == 0:
-            return None, 'Blotato is not connected: the BLOTATO_API_KEY secret is missing.'
+            return None, 'Blotato is not connected: paste the key in Settings > Blotato in the app.'
         if status != 200 or not isinstance(data, dict):
             return None, f'Blotato did not answer (HTTP {status}).'
         page = data.get('items') or []

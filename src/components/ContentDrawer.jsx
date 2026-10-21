@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { CHANNELS, CONTENT_STATUSES, DEFAULT_CTA, copyChecks } from '../lib/content.js';
 import { askAthena } from '../lib/athena.js';
 import { downloadFile, usePieceMedia } from '../lib/media.js';
+import SendToBlotato from './SendToBlotato.jsx';
 
-// The next step for a piece, so the common move is one click. The app never posts:
-// she posts by hand or in Blotato, then marks it here.
+// The next step for a piece, so the common move is one click. She posts by hand, in Blotato,
+// or with "Send to Blotato" below (her click, never Athena's), then the piece is marked here.
 const NEXT = {
   Idea: { to: 'Drafted', label: 'Mark drafted' },
   Drafted: { to: 'Awaiting approval', label: 'Send for my approval' },
@@ -24,6 +25,7 @@ export default function ContentDrawer({ row, store, onClose }) {
   }, [onClose]);
 
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const media = usePieceMedia(row.id, `${row.status}|${row.updated_at}`);
   const checks = copyChecks(f);
   const dirty = JSON.stringify(f) !== JSON.stringify(pick(row));
 
@@ -83,7 +85,9 @@ export default function ContentDrawer({ row, store, onClose }) {
         </label>
         <label className="f">The copy<textarea rows="12" value={f.body} onChange={set('body')} placeholder="Write the post here, or ask Athena to draft it." /></label>
         <div className="btn-row"><CopyButton text={f.body} /></div>
-        <PieceMedia contentId={row.id} refresh={`${row.status}|${row.updated_at}`} />
+        <PieceMedia rows={media.rows} thumbs={media.thumbs} />
+        {!['Idea', 'Skipped'].includes(f.status) && !dirty && <SendToBlotato row={row} media={media.rows || []} onChanged={() => store.reload()} />}
+        {!['Idea', 'Skipped'].includes(f.status) && dirty && <p className="small muted">Save your edits to send this post to Blotato.</p>}
         {checks.length > 0 && (
           <div className="checks" role="status">
             <strong>Before it goes out</strong>
@@ -131,8 +135,7 @@ function CopyButton({ text }) {
 }
 
 // The images and videos that go with this piece, from Media, ready to download.
-function PieceMedia({ contentId, refresh }) {
-  const { rows, thumbs } = usePieceMedia(contentId, refresh);
+function PieceMedia({ rows, thumbs }) {
   const [msg, setMsg] = useState('');
   if (!rows || rows.length === 0) return null;
   const blotato = rows.find((r) => r.source_url)?.source_url;
