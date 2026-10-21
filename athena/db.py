@@ -11,6 +11,7 @@ Tables: tasks, briefs, money, content, pages (read and write);
 rocks, scorecard, issues, l10 (Metis owns these: read only, except inside a Level 10,
 when answer.py sets ATHENA_METIS=1). scorecard metrics take JSON.
 media (her photo and finished post library: titles, tags and notes, read only).
+posts and post_metrics (how her social posts did, filled by athena/stats.py, read only).
 Output is JSON. Changes reach the app at once and Obsidian on the next sync.
 Standard library only.
 """
@@ -20,7 +21,7 @@ WRITABLE = {
     'tasks': ['title', 'status', 'priority', 'bucket', 'client', 'source', 'eos_flag', 'due', 'est_hours', 'serves_rock', 'notes', 'body'],
     'briefs': ['title', 'type', 'week_of', 'client_hours', 'colibrios_hours', 'decision_needed', 'gone_quiet', 'carry_over', 'body'],
     'money': ['title', 'kind', 'status', 'client', 'amount', 'sent', 'due', 'last_nudge', 'notes', 'body'],
-    'content': ['title', 'status', 'channel', 'product', 'target_date', 'cta', 'notes', 'body'],
+    'content': ['title', 'status', 'channel', 'product', 'target_date', 'cta', 'notes', 'body', 'posted_at', 'post_url'],
     'pages': ['title', 'folder', 'body'],
 }
 METIS = {
@@ -31,7 +32,7 @@ METIS = {
 }
 if os.environ.get('ATHENA_METIS') == '1':
     WRITABLE.update(METIS)
-READ_ONLY = (set(METIS) - set(WRITABLE)) | {'media'}
+READ_ONLY = (set(METIS) - set(WRITABLE)) | {'media', 'posts', 'post_metrics'}
 OPEN = {
     'tasks': 'status=not.in.(Done,Dropped)',
     'money': 'status=not.in.(Paid,Won,Lost)',
@@ -44,7 +45,7 @@ ORDER = {
     'tasks': 'due.asc.nullslast', 'briefs': 'created_at.desc', 'money': 'due.asc.nullslast',
     'content': 'target_date.asc.nullslast', 'pages': 'title.asc', 'rocks': 'due.asc.nullslast',
     'scorecard': 'week_ending.desc.nullslast', 'issues': 'priority.asc.nullslast', 'l10': 'meeting_date.desc.nullslast',
-    'media': 'created_at.desc',
+    'media': 'created_at.desc', 'posts': 'posted_at.desc', 'post_metrics': 'fetched_at.desc',
 }
 HIDE = {'extra', 'synced_hash', 'synced_at', 'deleted_at', 'vault_path', 'path', 'thumb_path'}
 ARRAYS = {'serves_rock', 'athena_tasks'}
@@ -79,6 +80,7 @@ def table_ok(t, write=False):
         sys.exit(f'Unknown table {t}. Use one of: {", ".join(sorted(set(WRITABLE) | READ_ONLY))}')
     if write and t in READ_ONLY:
         sys.exit(f'{t} is her media library. Athena reads it but never changes it.' if t == 'media'
+                 else f'{t} is filled by athena/stats.py. Athena reads it but never changes it by hand.' if t in ('posts', 'post_metrics')
                  else f'{t} belongs to Metis. Athena reads it but never changes it.')
 
 

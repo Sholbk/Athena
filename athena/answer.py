@@ -13,6 +13,8 @@ Three kinds of row:
     the job's prompt, and Metis may change Rocks, Scorecard, Issues and Level 10.
   - the LinkedIn comments job: a report whose drafts land on the Comment desk through
     athena/linkedin.py (LINKEDIN.md); the brief itself is saved as the page "LinkedIn comments".
+  - the Post numbers job: a report that copies how her posts did into posts and post_metrics
+    through athena/stats.py (STATS.md); its note is saved as the page "Post numbers".
 
 Needs SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY and CLAUDE_CODE_OAUTH_TOKEN. BLOTATO_API_KEY lets
 Athena make post images (POSTS.md); without it she still writes the captions. APIFY_TOKEN lets the
@@ -33,7 +35,8 @@ JOB_TIMEOUT = 25 * 60    # seconds per report job
 ALLOWED_TOOLS = ['Read', 'Write', 'Glob', 'Grep', 'Bash(python3 athena/db.py:*)',
                  'Bash(python3 athena/blotato.py:*)', 'Bash(python3 athena/media.py:*)',
                  'Bash(python3 athena/ideas.py:*)', 'Bash(python3 athena/site.py:*)',
-                 'Bash(python3 athena/gcal.py:*)', 'Bash(python3 athena/linkedin.py:*)']
+                 'Bash(python3 athena/gcal.py:*)', 'Bash(python3 athena/linkedin.py:*)',
+                 'Bash(python3 athena/stats.py:*)']
 BRIEF_TYPES = {'monday_plan': 'Monday plan', 'friday_wrap': 'Friday wrap'}
 FIELDS = ['client_hours', 'colibrios_hours', 'decision_needed', 'gone_quiet', 'carry_over']
 
@@ -131,8 +134,10 @@ def chat_prompt(req, history, job):
 def report_prompt(job):
     title = job['title']
     desk = job['key'] == 'linkedin_comments'
-    where = 'the Comment desk on her Marketing page' if desk else 'her Today page'
-    hand_back = (f'## What to hand back\n\nYour final reply is the {title}{" brief" if desk else ""} itself, in Markdown, ready for her to read on '
+    numbers = job['key'] == 'post_numbers'
+    where = ('the Comment desk on her Marketing page' if desk else 'the Results tab on her Marketing page' if numbers
+             else 'her Today page')
+    hand_back = (f'## What to hand back\n\nYour final reply is the {title}{" brief" if desk else " note" if numbers else ""} itself, in Markdown, ready for her to read on '
                  f'{where}. The app saves it for you, so do not save it with db.py, and do not add anything '
                  f'before or after it: no "Here is your brief", no notes about what you did. Start with the content.')
     if job['key'] in BRIEF_TYPES:
@@ -141,6 +146,8 @@ def report_prompt(job):
                       '"decision_needed": "one line, or null", "gone_quiet": "one line, or null", "carry_over": "one line, or null"}\n```')
     if desk:  # no calls, no calendar: this run is about other people's posts
         return f'{job["prompt"]}\n\n{read("LINKEDIN.md")}\n\n{hand_back}\n\nRight now it is {mountain_now()}.'
+    if numbers:  # no calls, no calendar: this run copies numbers in
+        return f'{job["prompt"]}\n\n{read("STATS.md")}\n\n{hand_back}\n\nRight now it is {mountain_now()}.'
     return (f'{job["prompt"]}\n\n{read("JOBS.md")}\n\n{read("CALLS.md")}\n\n{hand_back}\n\n'
             f'Right now it is {mountain_now()}.\n\n{calendar_for(job["key"])}')
 
@@ -204,6 +211,8 @@ def save_report(job, text):
     today = local_now().date()
     if job['key'] == 'linkedin_comments':
         return save_page('LinkedIn comments', text, 'Saved to the Comment desk on the Marketing page.')
+    if job['key'] == 'post_numbers':
+        return save_page('Post numbers', text, 'Saved to the Results tab on the Marketing page.')
     if job['key'] == 'daily_brief':
         rows = api('GET', 'pages?title=eq.Daily%20brief&folder=eq.Athena&deleted_at=is.null&select=id,extra&limit=1')
         if rows:

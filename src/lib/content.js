@@ -1,7 +1,7 @@
 export const CONTENT_STATUSES = ['Idea', 'Drafted', 'Awaiting approval', 'Scheduled', 'Shipped', 'Skipped'];
 export const CHANNELS = ['Instagram', 'Facebook', 'LinkedIn', 'Email', 'Newsletter', 'Blog', 'YouTube', 'TikTok', 'Skool', 'Other'];
 export const DEFAULT_CTA = 'Start a 30 day free trial.';
-export const CONTENT_COLS = 'id,title,status,channel,product,target_date,cta,notes,body,created_at,updated_at,vault_path';
+export const CONTENT_COLS = 'id,title,status,channel,product,target_date,cta,notes,body,posted_at,post_url,created_at,updated_at,vault_path';
 export const STATUS_TONE = { Idea: '', Drafted: 'info', 'Awaiting approval': 'warn', Scheduled: 'ok', Shipped: 'ok', Skipped: '' };
 
 // House rules every piece is checked against before it goes out.

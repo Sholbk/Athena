@@ -31,10 +31,12 @@ export default function ContentDrawer({ row, store, onClose }) {
     const next = { ...f, ...patch };
     setBusy(true); setMsg('');
     try {
+      // The moment it shipped is kept once, on the flip to Shipped; later saves leave it alone.
+      const shipped = next.status === 'Shipped' && row.status !== 'Shipped' && !row.posted_at ? { posted_at: new Date().toISOString() } : {};
       await store.save(row.id, {
         title: next.title.trim() || row.title, status: next.status, channel: next.channel || null,
         product: next.product || null, target_date: next.target_date || null, cta: next.cta || null,
-        notes: next.notes || null, body: next.body,
+        notes: next.notes || null, body: next.body, post_url: next.post_url.trim() || null, ...shipped,
       });
       setF(next);
       setMsg(patch.status ? `Moved to ${patch.status}.` : 'Saved. It reaches Obsidian on the next sync.');
@@ -89,6 +91,12 @@ export default function ContentDrawer({ row, store, onClose }) {
           </div>
         )}
         <label className="f">Notes<textarea rows="4" value={f.notes} onChange={set('notes')} placeholder="Which seed it came from, who needs to say yes, how it did" /></label>
+        {['Awaiting approval', 'Scheduled', 'Shipped'].includes(f.status) && (
+          <label className="f">Link to the post (optional)
+            <input type="url" value={f.post_url} onChange={set('post_url')} placeholder="https://www.instagram.com/p/…" />
+            <span className="small muted">Paste it after you post, so Results can match this piece to its numbers.{row.posted_at ? ` Posted ${fPosted.format(new Date(row.posted_at))}.` : ''}</span>
+          </label>
+        )}
         <div className="d-actions">
           <div className="btn-row">
             <button className="btn" type="button" onClick={() => save()} disabled={busy || !dirty}>{busy ? 'Saving…' : 'Save'}</button>
@@ -150,9 +158,11 @@ function PieceMedia({ contentId, refresh }) {
   );
 }
 
+const fPosted = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Denver', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+
 function pick(r) {
   return {
     title: r.title || '', status: r.status || 'Idea', channel: r.channel || '', product: r.product || 'ColibriOS',
-    target_date: r.target_date || '', cta: r.cta || '', notes: r.notes || '', body: r.body || '',
+    target_date: r.target_date || '', cta: r.cta || '', notes: r.notes || '', body: r.body || '', post_url: r.post_url || '',
   };
 }

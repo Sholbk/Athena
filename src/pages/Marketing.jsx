@@ -10,8 +10,9 @@ import { Panel, Skel } from '../components/bits.jsx';
 import ContentDrawer from '../components/ContentDrawer.jsx';
 import MediaLibrary from '../components/MediaLibrary.jsx';
 import CommentDesk from '../components/CommentDesk.jsx';
+import Results from '../components/Results.jsx';
 
-const VIEWS = [['pipeline', 'Pipeline'], ['calendar', 'Calendar'], ['ideas', 'Idea bank'], ['brand', 'Brand files'], ['media', 'Media'], ['linkedin', 'Comment desk']];
+const VIEWS = [['pipeline', 'Pipeline'], ['calendar', 'Calendar'], ['ideas', 'Idea bank'], ['brand', 'Brand files'], ['media', 'Media'], ['linkedin', 'Comment desk'], ['results', 'Results']];
 const BRAND_PAGE = 'ColibriOS Brand Files';
 const PAGE_COLS = 'id,title,folder,body,updated_at,vault_path';
 
@@ -65,6 +66,7 @@ export default function Marketing() {
       {view === 'brand' && <Brand pages={pages} />}
       {view === 'media' && <MediaLibrary onCaption={captionFor} />}
       {view === 'linkedin' && <CommentDesk pages={pages} />}
+      {view === 'results' && <Results content={content.rows} pages={pages} />}
       {current && <ContentDrawer row={current} store={content} onClose={() => setOpen(null)} />}
     </section>
   );

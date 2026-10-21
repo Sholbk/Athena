@@ -4,7 +4,7 @@ import { SUPABASE_URL, supabase } from '../lib/supabase.js';
 import { DAY_NAMES, runJob, scheduleText, useJobs } from '../lib/jobs.js';
 import { Panel, Skel } from '../components/bits.jsx';
 
-const ORDER = ['daily_brief', 'monday_plan', 'friday_wrap', 'linkedin_comments', 'level10'];
+const ORDER = ['daily_brief', 'monday_plan', 'friday_wrap', 'linkedin_comments', 'post_numbers', 'level10'];
 const fWhen = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Denver', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
 export default function Settings() {
@@ -18,6 +18,7 @@ export default function Settings() {
           <PostingDays />
           <GoogleCalendar />
           <WonderReel />
+          <LinkedInProfile />
         </div>
       </div>
     </section>
@@ -52,7 +53,8 @@ function JobRow({ job, run, store, onEdit, onStart }) {
   const timed = !!job.run_at;
   const go = async () => {
     setMsg('');
-    const lands = job.key === 'linkedin_comments' ? 'the Comment desk on your Marketing page' : 'your Today page';
+    const lands = job.key === 'linkedin_comments' ? 'the Comment desk on your Marketing page'
+      : job.key === 'post_numbers' ? 'the Results tab on your Marketing page' : 'your Today page';
     try { const { startError } = await runJob(job); setMsg(startError || `Started. It shows on ${lands} when it is done, usually within 5 minutes.`); await store.reload(); }
     catch (e) { setMsg(e.message); }
   };
@@ -230,6 +232,50 @@ function WonderReel() {
           <li>Paste it above and click Save. It holds your WonderReel key, so it stays hidden here.</li>
         </ol>
       </details>
+      {note && <p className="small">{note}</p>}
+      {msg && <p className="form-msg">{msg}</p>}
+    </Panel>
+  );
+}
+
+/* ---------- LinkedIn profile ---------- */
+// Her own profile link, so the Post numbers job knows whose public posts to read. Not a secret.
+function LinkedInProfile() {
+  const [saved, setSaved] = useState(undefined);
+  const [url, setUrl] = useState('');
+  const [msg, setMsg] = useState('');
+  const [note, setNote] = useState('');
+  const load = useCallback(async () => {
+    const { data, error } = await supabase.from('connections').select('url,updated_at').eq('key', 'linkedin_profile').maybeSingle();
+    if (error) setMsg(error.message); else { setSaved(data); setUrl(data?.url || ''); }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const save = async (e) => {
+    e.preventDefault(); setMsg(''); setNote('');
+    const link = url.trim().replace(/\?.*$/, '');
+    if (!/^https:\/\/(www\.)?linkedin\.com\/in\/[^/?#\s]+\/?$/i.test(link)) return setMsg('Paste your LinkedIn profile link, like https://www.linkedin.com/in/your-name/');
+    const { error } = await supabase.from('connections').upsert({ key: 'linkedin_profile', url: link, updated_at: new Date().toISOString() });
+    if (error) return setMsg(error.message);
+    setNote('Saved. The next Post numbers run reads your LinkedIn posts.'); load();
+  };
+  const remove = async () => {
+    if (!confirm('Remove your LinkedIn profile link? Results keeps the LinkedIn numbers it already has.')) return;
+    const { error } = await supabase.from('connections').delete().eq('key', 'linkedin_profile');
+    setNote('');
+    if (error) setMsg(error.message); else { setNote('Removed.'); setUrl(''); load(); }
+  };
+
+  return (
+    <Panel title="LinkedIn profile" eyebrow="For Results">
+      <p className="muted small" style={{ marginTop: 0 }}>Your own profile link, so Post numbers can read the reactions, comments and shares on your public LinkedIn posts. It reads only, through a public scan. Nothing signs in to LinkedIn.</p>
+      {saved === undefined ? <Skel /> : saved
+        ? <div className="job"><div className="job-main"><span className="card-title">Saved</span><span className="small muted">Since {fWhen.format(new Date(saved.updated_at))}</span></div><button className="linkbtn danger" type="button" onClick={remove}>Remove</button></div>
+        : <p className="empty">Not set yet, so Results shows Instagram and Facebook only.</p>}
+      <form className="cal-add wr-add" onSubmit={save}>
+        <label className="f">Your LinkedIn profile link<input type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://www.linkedin.com/in/your-name/" /></label>
+        <button className="btn" type="submit" disabled={!url.trim() || url.trim() === (saved?.url || '')}>Save</button>
+      </form>
       {note && <p className="small">{note}</p>}
       {msg && <p className="form-msg">{msg}</p>}
     </Panel>
