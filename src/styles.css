@@ -1,11 +1,14 @@
 /* Same look as the Athena Desk: a working desk with quiet panels. */
+/* Her brand palette (Oct 22): Bold Blue #313C79, Bold Violet #723A80, Bold Green #3B716E, Bold Plum #692D64,
+   Gold #AE7A1D, with Light Blue #A5A9D9, Light Violet #C1A6D9, Light Green #C6E6E4, Light Plum #DDB6CF,
+   Light Yellow #E9D07B. Bold colors lead in light mode, the light ones in dark mode. */
 :root{
-  --paper:#F3F5F4; --card:#FFFFFF; --soft:#E8EEEC; --line:#D9E1DF;
-  --ink:#152221; --muted:#566664; --accent:#17696F; --accent-ink:#FFFFFF; --accent-soft:#DCEEEE; --gold:#B07A12;
-  --danger:#B42318; --danger-soft:#FBE4E1; --warn:#9A4D06; --warn-soft:#FCEFD9;
-  --ok:#2F7D4F; --ok-soft:#E1F2E7; --info:#2F5FB3; --info-soft:#E3EBFA;
-  --b-client:#C2611F; --b-colibri:#7A4FC9; --b-graybear:#8A5A3B; --b-swnm:#2E7D4F; --b-admin:#6B7280; --b-personal:#C2417A;
-  --shadow:0 1px 2px rgba(16,32,30,.06),0 6px 20px rgba(16,32,30,.08); --scrim:rgba(16,32,30,.35);
+  --paper:#F5F5FA; --card:#FFFFFF; --soft:#E9EAF4; --line:#D8DBEC;
+  --ink:#1B2046; --muted:#5A5F82; --accent:#313C79; --accent-ink:#FFFFFF; --accent-soft:#E4E6F4; --gold:#AE7A1D;
+  --danger:#692D64; --danger-soft:#F4E4EE; --warn:#8A5F12; --warn-soft:#F7EDCB;
+  --ok:#3B716E; --ok-soft:#E1F1EF; --info:#723A80; --info-soft:#EEE4F5;
+  --b-client:#AE7A1D; --b-colibri:#723A80; --b-graybear:#692D64; --b-swnm:#3B716E; --b-admin:#5A5F82; --b-personal:#A65A8A;
+  --shadow:0 1px 2px rgba(27,32,70,.06),0 6px 20px rgba(27,32,70,.09); --scrim:rgba(27,32,70,.35);
   --f-display:"Bricolage Grotesque","Avenir Next","Segoe UI",system-ui,sans-serif;
   --f-body:"Atkinson Hyperlegible","Segoe UI",system-ui,-apple-system,sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
@@ -13,11 +16,11 @@
 }
 @media (prefers-color-scheme: dark){
   :root{
-    --paper:#0E1514; --card:#152020; --soft:#1D2A29; --line:#2A3836;
-    --ink:#E3ECEA; --muted:#97A7A4; --accent:#6CC4C9; --accent-ink:#0B1A1B; --accent-soft:#183334; --gold:#E3B04B;
-    --danger:#F2877D; --danger-soft:#3A1A17; --warn:#F2B266; --warn-soft:#3A2A12;
-    --ok:#7BCB98; --ok-soft:#173022; --info:#8DB0F0; --info-soft:#1A2640;
-    --b-client:#F0A060; --b-colibri:#B79CF2; --b-graybear:#CFA27F; --b-swnm:#79C99A; --b-admin:#A3A9B6; --b-personal:#F08DB8;
+    --paper:#12152B; --card:#1A1E3A; --soft:#23284B; --line:#31375E;
+    --ink:#E8E9F5; --muted:#A3A7CB; --accent:#A5A9D9; --accent-ink:#12152B; --accent-soft:#272D58; --gold:#E9D07B;
+    --danger:#DDB6CF; --danger-soft:#3B2036; --warn:#E9D07B; --warn-soft:#3A3118;
+    --ok:#C6E6E4; --ok-soft:#1E3836; --info:#C1A6D9; --info-soft:#2F2445;
+    --b-client:#E9D07B; --b-colibri:#C1A6D9; --b-graybear:#DDB6CF; --b-swnm:#C6E6E4; --b-admin:#A3A7CB; --b-personal:#E3A9C9;
     --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35); --scrim:rgba(0,0,0,.55); color-scheme:dark;
   }
 }
@@ -28,12 +31,15 @@ button,input,select,textarea{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
 .wrap{max-width:1240px;margin:0 auto;padding-inline:clamp(16px,3vw,32px)}
 .muted{color:var(--muted)} .small{font-size:13px} .mono{font-family:var(--f-mono);font-size:12.5px}
-.owl .body{fill:var(--accent)} .owl .eye{fill:var(--card)} .owl .pupil{fill:var(--ink)} .owl .beak{fill:var(--gold)}
+.mark{display:inline-block;flex:none;background:var(--accent);-webkit-mask:url(/athena-mark.png) center/contain no-repeat;mask:url(/athena-mark.png) center/contain no-repeat}
+.wordmark{font-family:"Federo","Bricolage Grotesque",serif !important;font-weight:400 !important;text-transform:uppercase;letter-spacing:.14em}
+.tagline{font-family:"Josefin Sans",system-ui,sans-serif;font-weight:300;letter-spacing:.02em}
 
 .top{position:sticky;top:0;z-index:30;background:var(--paper);border-bottom:1px solid var(--line)}
 .bar{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;padding-block:14px 8px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:10px;min-width:0}
-.brand h1{font:650 22px/1.1 var(--f-display);margin:0}
+.brand h1{font:400 23px/1.1 var(--f-display);margin:0}
+.brand .tagline{margin:0;color:var(--ink);font-size:15px;line-height:1.2}
 .brand p{margin:2px 0 0;color:var(--muted);font-size:13.5px}
 .who{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin-bottom:-1px}
@@ -73,6 +79,8 @@ label.f{display:grid;gap:4px;font-size:13px;font-weight:700;color:var(--muted);m
 
 .center{min-height:100vh;display:grid;place-content:center;justify-items:center;gap:10px;text-align:center;padding:24px}
 .center h2{font:650 26px/1.2 var(--f-display);margin:6px 0 0}
+.center h2.wordmark{font-size:40px;margin-top:14px}
+.center .tagline{font-size:24px;color:var(--ink);margin:0 0 14px}
 .center p{margin:0 0 10px;max-width:42ch}
 .soon{max-width:640px} .soon h2{font-size:24px;margin:4px 0 8px}
 
@@ -404,15 +412,15 @@ table.results-table th:first-child,table.results-table td:first-child{min-width:
 .ol-watch{justify-self:start;text-decoration:none}
 
 /* Social Media scorecard */
-.social{--sc-warm:#E9804F;--sc-warm-2:#F2A275;--sc-cream:#FFF8F1;--sc-ink:#2A1A12;--sc-pill-ig:#FBE0CC;--sc-pill-li:#E6E2D8;--sc-pill-yt:#F9D9D4;--sc-pill-fb:#DCE6F7;--sc-pill-x:#E4E4E4}
-@media (prefers-color-scheme: dark){.social{--sc-cream:#2A211C;--sc-pill-ig:#4A3122;--sc-pill-li:#3A372F;--sc-pill-yt:#4A2A26;--sc-pill-fb:#26324A;--sc-pill-x:#333}}
-.sc-hero{position:relative;overflow:hidden;border-radius:22px;padding:28px clamp(18px,4vw,36px);background:radial-gradient(120% 140% at 100% 0%,#F7B8C9 0%,rgba(247,184,201,0) 45%),linear-gradient(135deg,var(--sc-warm),var(--sc-warm-2));color:var(--sc-ink);display:grid;gap:16px;margin:4px 0 16px}
+.social{--sc-warm:#692D64;--sc-warm-2:#DDB6CF;--sc-cream:#FBF4DE;--sc-ink:#1B2046;--sc-pill-ig:#F1DCE8;--sc-pill-li:#DFE1F2;--sc-pill-yt:#F6ECC6;--sc-pill-fb:#E9DEF3;--sc-pill-x:#E4E4EC}
+@media (prefers-color-scheme: dark){.social{--sc-warm:#DDB6CF;--sc-warm-2:#6E4466;--sc-cream:#2E2918;--sc-pill-ig:#4A2843;--sc-pill-li:#2C3260;--sc-pill-yt:#4A3E1C;--sc-pill-fb:#3A2A52;--sc-pill-x:#33364F}}
+.sc-hero{position:relative;overflow:hidden;border-radius:22px;padding:28px clamp(18px,4vw,36px);background:radial-gradient(120% 140% at 100% 0%,rgba(233,208,123,.55) 0%,rgba(233,208,123,0) 45%),linear-gradient(135deg,#313C79,#723A80 70%,#692D64);color:#FFFFFF;display:grid;gap:16px;margin:4px 0 16px}
 @media (min-width:860px){.sc-hero{grid-template-columns:minmax(0,1fr) auto;align-items:end}}
 .sc-hero h2{font:700 clamp(28px,4.4vw,44px)/1.05 var(--f-display);margin:6px 0 10px;letter-spacing:-.01em}
-.sc-hero h2 em{font-style:normal;color:#FFF7EE}
+.sc-hero h2 em{font-style:normal;color:#E9D07B}
 .sc-hero p{margin:0;max-width:62ch}
 .sc-kicker{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:0}
-.sc-week{background:rgba(255,248,241,.92);color:var(--sc-ink);border-radius:12px;padding:10px 14px;display:grid;gap:2px;justify-self:start;font-size:14px}
+.sc-week{background:rgba(255,255,255,.94);color:#1B2046;border-radius:12px;padding:10px 14px;display:grid;gap:2px;justify-self:start;font-size:14px}
 @media (min-width:860px){.sc-week{justify-self:end;text-align:right}}
 .sc-label{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--sc-warm);margin:24px 0 10px}
 .sc-aud{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr))}
