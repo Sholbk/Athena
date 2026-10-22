@@ -11,6 +11,7 @@ import ContentDrawer from '../components/ContentDrawer.jsx';
 import MediaLibrary from '../components/MediaLibrary.jsx';
 import CommentDesk from '../components/CommentDesk.jsx';
 import Results from '../components/Results.jsx';
+import MarketingChat from '../components/MarketingChat.jsx';
 
 const VIEWS = [['pipeline', 'Pipeline'], ['calendar', 'Calendar'], ['ideas', 'Idea bank'], ['brand', 'Brand files'], ['media', 'Media'], ['linkedin', 'Comment desk'], ['results', 'Results']];
 const BRAND_PAGE = 'ColibriOS Brand Files';
@@ -56,6 +57,7 @@ export default function Marketing() {
         <div><p className="eyebrow">ColibriOS marketing</p><h2>Marketing hub</h2></div>
         <button className="btn" type="button" onClick={() => newPiece().catch((e) => alert(e.message))}>New post</button>
       </div>
+      <MarketingChat onReply={() => { content.reload(); pages.reload(); }} />
       <div className="seg" role="tablist" aria-label="Marketing views">
         {VIEWS.map(([v, label]) => <button key={v} type="button" role="tab" aria-selected={view === v} onClick={() => pick(v)}>{label}</button>)}
       </div>
