@@ -199,5 +199,49 @@ class InstagramApify(unittest.TestCase):
         self.assertIsNone(rows[1][1]['likes'])  # hidden likes are not collected, never zero
 
 
+class WeeklyScorecard(unittest.TestCase):
+    fb = [
+        {'postId': '122111449161501292', 'url': 'https://www.facebook.com/permalink.php?story_fbid=pfbid02X&id=61595038786783',
+         'time': '2026-10-21T22:57:53.000Z', 'likes': 1, 'shares': 1, 'text': 'What if running your business  didn’t require 10 different platforms? ✨',
+         'media': [{'__typename': 'Photo'}]},
+        {'postId': '122108393157501292', 'time': '2026-10-15T16:54:11.000Z', 'likes': 0, 'shares': 1, 'text': '6 tabs open'},
+        {'url': 'https://www.facebook.com/api/graphql/', 'error': 'no_items'},
+    ]
+
+    def test_facebook_rows(self):
+        rows = stats.facebook_rows(self.fb)
+        self.assertEqual([r['external_id'] for r, _ in rows], ['122111449161501292', '122108393157501292'])
+        row, s = rows[0]
+        self.assertEqual((row['platform'], row['source'], row['format']), ('facebook', 'apify', 'image'))
+        self.assertEqual((s['likes'], s['shares']), (1, 1))
+        self.assertIsNone(s['comments'])   # Facebook leaves zero comments out: not collected, never zero
+        self.assertIsNone(s['views'])
+        self.assertEqual(rows[1][0]['format'], 'text')
+
+    def test_facebook_matches_blotato_by_words(self):
+        row = stats.facebook_rows(self.fb)[0][0]
+        blotato = [{'id': 'b1', 'caption': 'What if running your business didn’t require 10 different platforms? ✨ Meet ColibriOS',
+                    'posted_at': '2026-10-21T22:57:55+00:00'}]
+        self.assertEqual(stats.match_by_caption(row, blotato)['id'], 'b1')
+        self.assertIsNone(stats.match_by_caption(row, [dict(blotato[0], posted_at='2026-10-10T00:00:00+00:00')]))
+        self.assertIsNone(stats.match_by_caption(dict(row, caption='Hi'), blotato))  # too short to trust
+
+    def test_linkedin_company_page(self):
+        self.assertEqual(stats.profile_slug('https://www.linkedin.com/company/colibri-os/?viewAsMember=true'), 'colibri-os')
+        items = [
+            {'type': 'post', 'linkedinUrl': 'https://www.linkedin.com/posts/colibri-os_most-activity-7516207001513820161-kvkS',
+             'author': {'universalName': 'colibri-os', 'linkedinUrl': 'https://www.linkedin.com/company/colibri-os/posts'},
+             'postedAt': {'date': '2026-10-14T18:43:13.534Z'}, 'engagement': {'likes': 9, 'comments': 6, 'shares': 0}, 'content': 'Most business software'},
+            {'type': 'post', 'linkedinUrl': 'https://www.linkedin.com/posts/stephaniebholbrook_x-activity-7516207001513820999-aaaa',
+             'author': {'linkedinUrl': 'https://www.linkedin.com/in/stephaniebholbrook'},
+             'postedAt': {'date': '2026-10-15T18:00:00Z'}, 'engagement': {'likes': 3}, 'content': '6 tabs'},
+            {'type': 'post', 'linkedinUrl': 'https://www.linkedin.com/posts/someone_x-activity-1-a',
+             'author': {'linkedinUrl': 'https://www.linkedin.com/in/someone'}, 'postedAt': {'date': '2026-10-15T18:00:00Z'}},
+        ]
+        rows = stats.linkedin_posts(items, ['https://www.linkedin.com/in/stephaniebholbrook/', 'https://www.linkedin.com/company/colibri-os/'])
+        self.assertEqual([r['_who'] for r, _ in rows], ['colibri-os', 'stephaniebholbrook'])
+        self.assertEqual(rows[0][1]['comments'], 6)
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=1)

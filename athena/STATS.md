@@ -7,6 +7,8 @@ Your tools, run from the current folder:
     python3 athena/stats.py pull --cap 0.20
     python3 athena/stats.py summary --weeks 4
 
+(`python3 athena/stats.py scorecard` is the Friday Social scorecard job, run without you. Leave it alone.)
+
 `pull` reads her published Instagram and Facebook posts from Blotato (with the numbers Blotato collected, about once a week) and her own public LinkedIn posts through Apify (reactions, comments, shares; LinkedIn shows impressions only to her, so there are none here). It saves posts and snapshots to the tables posts and post_metrics, ties each post to the content piece it came from when it can, and prints one JSON line with what happened. `summary` prints, per week and per platform, how many posts went out and their reach, views and engagement (likes + comments + saves + shares), newest week first, plus the best post of each week. It covers only the last 4 weeks (its `window`); older posts on record are left out on purpose, so never call them missing.
 
 Your only writes are what `pull` does and the note you hand back. Never post, schedule, like, comment or follow anywhere, and never touch Apify beyond the one scan inside `pull`.
