@@ -8,8 +8,9 @@ No Claude is involved. It reads the watched accounts from outlier_accounts, pull
 the last 14 days through the Apify Actor apify/instagram-reel-scraper with her token from
 Settings > Apify (connections key apify), and saves them to outlier_reels.
 
-A reel is an outlier when it has 10,000 likes or more, or at least 3 times its creator's median
-views over the same 14 days. Only outliers get a spoken transcript (an Apify add-on charged per
+A reel is an outlier when it has at least 3 times its creator's median likes, or at least 3 times
+their median views, over the same 14 days. Both tests are relative to the creator, so an account with
+500,000 followers is only flagged when a reel beats its own usual, not on every reel. Only outliers get a spoken transcript (an Apify add-on charged per
 minute of audio), and a reel that already has one is never transcribed again. Every run stays under
 COST_CAP dollars: the pull is capped by maxTotalChargeUsd, and transcripts go to the biggest
 outliers first until the estimate reaches what is left.
@@ -23,8 +24,7 @@ import argparse, datetime, json, math, os, re, sys, time, urllib.error, urllib.p
 APIFY = 'https://api.apify.com/v2'
 ACTOR = 'apify~instagram-reel-scraper'
 DAYS = 14
-LIKES_BAR = 10000
-TIMES_BAR = 3
+TIMES_BAR = 3            # an outlier beats its creator's median likes or median views by this much
 COST_CAP = 3.00          # dollars per run, pull and transcripts together (her cap, Oct 22)
 PULL_CAP = 1.00          # 19 accounts read about 150 to 400 reels in 14 days at $0.0023 each; the rest goes to transcripts
 MAX_REELS = 30           # per account; the busiest post about 2 a day
@@ -114,17 +114,20 @@ def hook_for(transcript, caption):
 
 def mark(reels):
     """Adds creator_median, times_usual, is_outlier and outlier_reason to each reel (in place).
-    Median views are per creator over the reels given. Returns the reels."""
+    Median views and median likes are per creator over the reels given. creator_median and times_usual
+    stay about views (they are what the page shows); the likes test only feeds is_outlier and the reason.
+    Returns the reels."""
     by_creator = {}
     for r in reels:
         by_creator.setdefault(r['creator'], []).append(r)
     for group in by_creator.values():
         med = median([r.get('views') for r in group])
+        med_likes = median([r.get('likes') for r in group])
         for r in group:
             v, likes = r.get('views'), r.get('likes')
             r['creator_median'] = int(round(med)) if med is not None else None
             r['times_usual'] = round(v / med, 2) if (v is not None and med) else None
-            by_likes = likes is not None and likes >= LIKES_BAR
+            by_likes = likes is not None and bool(med_likes) and likes / med_likes >= TIMES_BAR
             by_views = r['times_usual'] is not None and r['times_usual'] >= TIMES_BAR
             r['is_outlier'] = by_likes or by_views
             r['outlier_reason'] = 'both' if (by_likes and by_views) else 'likes' if by_likes else 'views' if by_views else None

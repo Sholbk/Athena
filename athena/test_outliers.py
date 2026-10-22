@@ -53,10 +53,32 @@ class Marking(unittest.TestCase):
         self.assertEqual(out[0]['outlier_reason'], 'views')
 
     def test_likes_alone(self):
-        rs = o.mark([reel('a', 'x', 100, likes=12000), reel('b', 'x', 100), reel('c', 'x', 100)])
+        # 3 times the creator's median likes counts, even with flat views.
+        rs = o.mark([reel('a', 'x', 100, likes=300), reel('b', 'x', 100, likes=100), reel('c', 'x', 100, likes=100)])
         self.assertTrue(rs[0]['is_outlier'])
         self.assertEqual(rs[0]['outlier_reason'], 'likes')
         self.assertFalse(rs[1]['is_outlier'])
+
+    def test_big_account_not_flagged_on_every_reel(self):
+        # Modeled on a 500,000-follower account: every reel clears 10,000 likes (the old rule flagged
+        # all six). Only the reel at 3 times its usual likes is an outlier now.
+        likes = [14000, 15500, 16000, 17000, 18000, 60000]
+        views = [210000, 230000, 240000, 250000, 260000, 380000]
+        rs = o.mark([reel(f'b{i}', 'big', v, likes=l) for i, (v, l) in enumerate(zip(views, likes))])
+        out = [r for r in rs if r['is_outlier']]
+        self.assertEqual([r['short_code'] for r in out], ['b5'])
+        self.assertEqual(out[0]['outlier_reason'], 'likes')
+        self.assertTrue(all(r['likes'] >= 10000 for r in rs))
+
+    def test_both_reasons(self):
+        rs = o.mark([reel('a', 'x', 900, likes=90), reel('b', 'x', 100, likes=10), reel('c', 'x', 100, likes=10)])
+        self.assertEqual(rs[0]['outlier_reason'], 'both')
+
+    def test_hidden_or_zero_likes(self):
+        rs = o.mark([reel('a', 'x', 100, likes=None), reel('b', 'x', 100, likes=None)])
+        self.assertFalse(any(r['is_outlier'] for r in rs))
+        rs = o.mark([reel('a', 'x', 100, likes=0), reel('b', 'x', 100, likes=0), reel('c', 'x', 100, likes=5)])
+        self.assertFalse(any(r['is_outlier'] for r in rs))
 
     def test_exactly_three_times_counts(self):
         rs = o.mark([reel('a', 'x', 300), reel('b', 'x', 100), reel('c', 'x', 100)])

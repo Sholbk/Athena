@@ -54,7 +54,7 @@ export default function Outliers() {
             <Stat label="Refreshed" value={lastRun ? day(lastRun) : '·'} sub={lastRun ? fWhen.format(new Date(lastRun)) : 'Not yet'} />
           </div>
           {outliers.length === 0 ? (
-            <p className="empty mt">{rows.length ? 'No reel in the last 14 days beat 3 times its creator\'s usual views or reached 10,000 likes.' : 'Nothing here yet. Press Refresh now and the reels show up in a few minutes.'}</p>
+            <p className="empty mt">{rows.length ? 'No reel in the last 14 days beat 3 times its creator\'s usual likes or usual views.' : 'Nothing here yet. Press Refresh now and the reels show up in a few minutes.'}</p>
           ) : (
             <ol className="ol-list mt">{outliers.map((r, i) => <OutlierCard key={r.id} r={r} rank={i + 1} />)}</ol>
           )}
@@ -67,7 +67,7 @@ export default function Outliers() {
             {note ? <div className="md"><Markdown text={note.body} /></div>
               : <p className="empty">After each run, a short note shows here: how many reels came in, the biggest outlier, and what it cost.</p>}
           </Panel>
-          <p className="small muted">An outlier has 10,000 likes or more, or at least 3 times that creator's usual views. Usual means the middle value of their reels from the same 14 days. Only outliers get a transcript, and each run is capped at $3 in Apify costs. A dot means Instagram did not show the number.</p>
+          <p className="small muted">An outlier has at least 3 times that creator's usual likes, or at least 3 times their usual views. Usual means the middle value of their reels from the same 14 days, so big accounts are measured against themselves. Only outliers get a transcript, and each run is capped at $3 in Apify costs. A dot means Instagram did not show the number.</p>
         </>
       )}
     </section>
@@ -98,7 +98,7 @@ function OutlierCard({ r, rank: place }) {
         <span className="ol-rank">{place}</span>
         <strong>{r.times_usual != null ? fmtX(r.times_usual) : '·'}</strong>
         <span className="small muted">{r.times_usual != null ? 'usual views' : 'no views shown'}</span>
-        {(likesOnly || r.outlier_reason === 'both') && <span className="pill ok">10,000+ likes</span>}
+        {(likesOnly || r.outlier_reason === 'both') && <span className="pill ok">3x usual likes</span>}
       </div>
       <div className="ol-body">
         <div className="ol-top">
