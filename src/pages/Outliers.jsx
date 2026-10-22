@@ -67,7 +67,7 @@ export default function Outliers() {
             {note ? <div className="md"><Markdown text={note.body} /></div>
               : <p className="empty">After each run, a short note shows here: how many reels came in, the biggest outlier, and what it cost.</p>}
           </Panel>
-          <p className="small muted">An outlier has 10,000 likes or more, or at least 3 times that creator's usual views. Usual means the middle value of their reels from the same 14 days. Only outliers get a transcript, which keeps each run under $1 in Apify costs. A dot means Instagram did not show the number.</p>
+          <p className="small muted">An outlier has 10,000 likes or more, or at least 3 times that creator's usual views. Usual means the middle value of their reels from the same 14 days. Only outliers get a transcript, and each run is capped at $3 in Apify costs. A dot means Instagram did not show the number.</p>
         </>
       )}
     </section>
