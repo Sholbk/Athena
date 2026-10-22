@@ -372,3 +372,10 @@ table.results-table th:first-child,table.results-table td:first-child{min-width:
 .send .calopt{white-space:nowrap}
 .send input[type=datetime-local]{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
 .plain-list{margin:0;padding-left:18px}
+
+/* Marketing desk (chat on the Marketing hub) */
+.mkt-chat{display:grid;gap:10px;background:var(--accent-soft);border-radius:12px;padding:12px 14px;margin-bottom:14px}
+.mkt-chat .label-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px 14px;flex-wrap:wrap}
+.mkt-chat .chat-log.short{min-height:0;max-height:min(44vh,420px)}
+.mkt-chat .chat-form textarea{min-height:44px}
+.mkt-chat.closed{padding:10px 14px}

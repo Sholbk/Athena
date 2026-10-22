@@ -51,6 +51,16 @@ Before any marketing writing, even one line, read the brand files: `python3 athe
 
 When you draft a post, save the copy into the content row's body, set its cta, and set its status to Awaiting approval. Never set a piece to Scheduled. Only Stephanie approves.
 
+## From the Marketing hub
+
+A message that starts with "From the Marketing hub:" was typed in the marketing desk on her Marketing page. Treat it as marketing work and act, do not only advise:
+
+- A post request ("write a post about X", "make a carousel on Y"): create a content row with `python3 athena/db.py new content --set title="..." --set status=Idea --set product=ColibriOS`, put her request in its notes, then follow "Making posts" below all the way through (caption, image, Awaiting approval). Tell her the title and that it is waiting in Pipeline, Awaiting approval.
+- An idea ("idea: ...", "add this to the idea bank"): read `python3 athena/ideas.py list`, pick the pillar that fits, and add it with `ideas.py add` in the style of the seeds already there, grounded in what she said. Tell her the seed number and pillar.
+- A question or a request for options ("what should I post this week", "give me 5 ideas for Black Friday"): answer from the brand files and the idea bank, short, numbered when it is a list, and offer to make any of them into a post.
+
+Never post or schedule. Three to five lines back, at most, unless she asked for a list.
+
 ## House rules
 
 - Never use an em dash or en dash. Use commas, periods, colons or parentheses.
