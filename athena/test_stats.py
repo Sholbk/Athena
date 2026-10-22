@@ -130,5 +130,55 @@ class Summary(unittest.TestCase):
         self.assertEqual(stats.summarize(posts, {}, 4, today_=datetime.date(2026, 10, 1)), {})
 
 
+FEED = """<feed><entry><id>yt:video:endm2Urrx9M</id><yt:videoId>endm2Urrx9M</yt:videoId>
+<title>The Secret to Scaling &amp; Growing</title><link rel="alternate" href="https://www.youtube.com/watch?v=endm2Urrx9M"/>
+<published>2026-09-21T01:34:20+00:00</published><media:group><media:community><media:starRating count="2" average="5.00" min="1" max="5"/>
+<media:statistics views="11"/></media:community></media:group></entry>
+<entry><yt:videoId>4oBqlr76yUQ</yt:videoId><title>Rammed earth</title><link rel="alternate" href="https://www.youtube.com/shorts/4oBqlr76yUQ"/>
+<published>2024-04-16T16:57:16+00:00</published></entry></feed>"""
+
+
+class SocialMedia(unittest.TestCase):
+    def test_format_from_media(self):
+        self.assertEqual(stats.format_of(['https://x.io/a/b.MP4']), 'video')
+        self.assertEqual(stats.format_of(['https://x.io/a.jpeg']), 'image')
+        self.assertEqual(stats.format_of(['https://x.io/a.jpeg', 'https://x.io/b.jpeg']), 'carousel')
+
+    def test_format_from_link(self):
+        self.assertEqual(stats.format_of([], 'https://www.instagram.com/reel/Dabc/'), 'video')
+        self.assertEqual(stats.format_of(None, 'https://www.youtube.com/shorts/x'), 'video')
+        self.assertIsNone(stats.format_of([], 'https://www.instagram.com/p/Dabc/'))
+
+    def test_linkedin_format(self):
+        self.assertEqual(stats.linkedin_format({'postVideo': {'url': 'v'}}), 'video')
+        self.assertEqual(stats.linkedin_format({'postImages': [{}, {}]}), 'carousel')
+        self.assertEqual(stats.linkedin_format({'content': 'words'}), 'text')
+
+    def test_youtube_feed(self):
+        rows = stats.youtube_entries(FEED)
+        self.assertEqual(len(rows), 2)
+        row, s = rows[0]
+        self.assertEqual(row['external_id'], 'endm2Urrx9M')
+        self.assertEqual(row['caption'], 'The Secret to Scaling & Growing')
+        self.assertEqual(row['posted_at'], '2026-09-21T01:34:20+00:00')
+        self.assertEqual((s['views'], s['likes']), (11, 2))
+        self.assertIsNone(rows[1][1])  # no numbers in the entry: no snapshot, never zeros
+
+    def test_channel_id(self):
+        self.assertEqual(stats.youtube_channel_id('https://www.youtube.com/channel/UCKM3BLEjwjcQ4mQD6dZw6UA'), 'UCKM3BLEjwjcQ4mQD6dZw6UA')
+        self.assertEqual(stats.youtube_channel_id('https://www.youtube.com/@colibrios'), '')
+
+    def test_follower_count(self):
+        self.assertEqual(stats.follower_count({'followersCount': 1838}), 1838)
+        self.assertEqual(stats.follower_count({'numberOfSubscribers': 22}), 22)
+        self.assertEqual(stats.follower_count({'followers': '1,575'.replace(',', '')}), 1575)
+        self.assertIsNone(stats.follower_count({'error': 'not_available'}))
+
+    def test_follower_input(self):
+        self.assertEqual(stats.follower_input('instagram', 'https://www.instagram.com/colibrios.app/')[1], {'usernames': ['colibrios.app']})
+        self.assertEqual(stats.follower_input('linkedin', 'https://www.linkedin.com/company/colibrios/')[0], 'apt_marble~linkedin-company-details')
+        self.assertIsNone(stats.follower_input('twitter', 'https://x.com/sholbk'))
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=1)

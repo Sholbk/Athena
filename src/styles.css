@@ -402,3 +402,45 @@ table.results-table th:first-child,table.results-table td:first-child{min-width:
 .ol-nums dt{font:500 11.5px var(--f-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
 .ol-nums dd{margin:0;font-weight:700;font-variant-numeric:tabular-nums}
 .ol-watch{justify-self:start;text-decoration:none}
+
+/* Social Media scorecard */
+.social{--sc-warm:#E9804F;--sc-warm-2:#F2A275;--sc-cream:#FFF8F1;--sc-ink:#2A1A12;--sc-pill-ig:#FBE0CC;--sc-pill-li:#E6E2D8;--sc-pill-yt:#F9D9D4;--sc-pill-fb:#DCE6F7;--sc-pill-x:#E4E4E4}
+@media (prefers-color-scheme: dark){.social{--sc-cream:#2A211C;--sc-pill-ig:#4A3122;--sc-pill-li:#3A372F;--sc-pill-yt:#4A2A26;--sc-pill-fb:#26324A;--sc-pill-x:#333}}
+.sc-hero{position:relative;overflow:hidden;border-radius:22px;padding:28px clamp(18px,4vw,36px);background:radial-gradient(120% 140% at 100% 0%,#F7B8C9 0%,rgba(247,184,201,0) 45%),linear-gradient(135deg,var(--sc-warm),var(--sc-warm-2));color:var(--sc-ink);display:grid;gap:16px;margin:4px 0 16px}
+@media (min-width:860px){.sc-hero{grid-template-columns:minmax(0,1fr) auto;align-items:end}}
+.sc-hero h2{font:700 clamp(28px,4.4vw,44px)/1.05 var(--f-display);margin:6px 0 10px;letter-spacing:-.01em}
+.sc-hero h2 em{font-style:normal;color:#FFF7EE}
+.sc-hero p{margin:0;max-width:62ch}
+.sc-kicker{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:0}
+.sc-week{background:rgba(255,248,241,.92);color:var(--sc-ink);border-radius:12px;padding:10px 14px;display:grid;gap:2px;justify-self:start;font-size:14px}
+@media (min-width:860px){.sc-week{justify-self:end;text-align:right}}
+.sc-label{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--sc-warm);margin:24px 0 10px}
+.sc-aud{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr))}
+.sc-acard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:grid;gap:4px;align-content:start;min-width:0}
+.sc-acard.all{background:var(--sc-cream);border-color:var(--sc-warm-2)}
+.sc-acard strong{font:650 28px/1.1 var(--f-display);font-variant-numeric:tabular-nums}
+.sc-acard-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sc-pill{display:inline-block;justify-self:start;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--soft);color:var(--ink);white-space:nowrap}
+.sc-pill.dark{background:var(--ink);color:var(--paper)}
+.sc-pill.instagram{background:var(--sc-pill-ig)} .sc-pill.linkedin{background:var(--sc-pill-li)} .sc-pill.youtube{background:var(--sc-pill-yt)}
+.sc-pill.facebook{background:var(--sc-pill-fb)} .sc-pill.twitter{background:var(--sc-pill-x)}
+.sc-spark{width:60px;height:20px;color:var(--sc-warm)}
+.sc-delta{font-size:13px;font-weight:700} .sc-delta.up{color:var(--ok)} .sc-delta.down{color:var(--danger)}
+.sc-pct{font-size:12.5px;font-weight:700;margin-left:4px} .sc-pct.up{color:var(--ok)} .sc-pct.down{color:var(--danger)}
+.sc-callout{font:italic 600 clamp(17px,2.2vw,21px)/1.4 var(--f-display);color:var(--sc-warm);margin:22px 0 4px}
+.sc-two{display:grid;gap:4px 24px}
+@media (min-width:860px){.sc-two{grid-template-columns:1fr 1fr}}
+.sc-hl{display:grid;gap:3px;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--danger);border-radius:12px;padding:12px 14px;margin-bottom:10px;color:var(--ink);text-decoration:none}
+.sc-hl.good{border-left-color:var(--ok)}
+.sc-hl:hover{box-shadow:var(--shadow)}
+.sc-hl-cap{font-weight:600}
+.sc-hl strong{font:650 20px/1.2 var(--f-display);color:var(--sc-warm)}
+.sc-table td,.sc-table th{white-space:nowrap}
+.sc-table .post-cell{text-align:left;white-space:normal;min-width:220px;max-width:420px}
+.sc-fmt{display:block;margin-top:2px}
+.sc-verdict{display:grid;justify-items:end;gap:2px}
+.sc-next{background:var(--sc-cream);border:1px solid var(--sc-warm-2);border-radius:16px;padding:18px 20px;margin-top:24px}
+.sc-next .sc-kicker{color:var(--sc-warm)}
+.sc-next h3{font:700 22px/1.2 var(--f-display);margin:6px 0}
+.sc-next p:last-child{margin:0}
+.sc-foot{text-align:center;margin-top:14px}

@@ -10,6 +10,7 @@ import Week from './pages/Week.jsx';
 import Soon from './pages/Soon.jsx';
 import Marketing from './pages/Marketing.jsx';
 import Outliers from './pages/Outliers.jsx';
+import Social from './pages/Social.jsx';
 import Athena from './pages/Athena.jsx';
 import Library from './pages/Library.jsx';
 import EOS from './pages/EOS.jsx';
@@ -19,7 +20,7 @@ import Owl from './components/Owl.jsx';
 
 const NAV = [
   ['/', 'Today'], ['/tasks', 'Tasks'], ['/week', 'Week'],
-  ['/marketing', 'Marketing'], ['/outliers', 'Outliers'], ['/eos', 'EOS'], ['/athena', 'Athena'], ['/library', 'Library'], ['/settings', 'Settings'],
+  ['/marketing', 'Marketing'], ['/social', 'Social Media'], ['/outliers', 'Outliers'], ['/eos', 'EOS'], ['/athena', 'Athena'], ['/library', 'Library'], ['/settings', 'Settings'],
 ];
 
 export default function App() {
@@ -83,6 +84,7 @@ function Shell({ email }) {
           <Route path="/tasks" element={<Tasks store={store} onOpen={openTask} />} />
           <Route path="/week" element={<Week store={store} onOpen={openTask} />} />
           <Route path="/marketing" element={<Marketing />} />
+          <Route path="/social" element={<Social />} />
           <Route path="/outliers" element={<Outliers />} />
           <Route path="/eos" element={<EOS />} />
           <Route path="/athena" element={<Athena />} />
