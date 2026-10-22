@@ -257,7 +257,7 @@ function Blotato() {
   const save = async (e) => {
     e.preventDefault(); setMsg(''); setNote('');
     const value = token.trim();
-    if (!/^[A-Za-z0-9_.-]{20,}$/.test(value)) return setMsg('That does not look like a Blotato API key: one long run of letters and numbers, no spaces. Find it in Blotato under Settings, API.');
+    if (!value || /\s/.test(value)) return setMsg('Paste the whole key with no spaces in it.');
     const { error } = await supabase.from('connections').upsert({ key: 'blotato', data: { token: value }, updated_at: new Date().toISOString() });
     if (error) return setMsg(error.message);
     setToken(''); setNote('Saved. Send to Blotato works from the next post you open.'); load();
