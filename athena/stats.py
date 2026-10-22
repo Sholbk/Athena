@@ -3,6 +3,7 @@
 
   python3 athena/stats.py pull [--cap 0.20]      copy the numbers in from Blotato and LinkedIn
   python3 athena/stats.py summary [--weeks 4]    posts, reach, views and engagement per week and platform
+  python3 athena/stats.py scorecard              the Friday social scorecard: Apify only, last 30 days, no Blotato
 
 pull reads her published Instagram and Facebook posts from Blotato (GET /published-posts and
 /posts/{id}/analytics, BLOTATO_API_KEY) with the numbers Blotato collected, and her own public
@@ -35,10 +36,12 @@ MAX_LINKEDIN_POSTS = 20
 POST_PRICE, START_PRICE = 0.002, 0.00005
 FOLLOWER_CAP = 0.05       # dollars per run for all follower checks together
 INSTAGRAM_CAP = 0.15      # dollars per run for her own Instagram posts (about $0.0023 a post)
+FACEBOOK_CAP = 0.15       # dollars per run for her Facebook posts (about $0.005 a post)
+SOCIAL_DAYS = 30          # the scorecard's window: every Apify pull reads the last 30 days
 MAX_INSTAGRAM_POSTS = 40
 YOUTUBE_FEED = 'https://www.youtube.com/feeds/videos.xml?channel_id='
 BLOTATO_PLATFORMS = {'instagram', 'facebook', 'twitter', 'youtube'}   # what posts.platform allows; the rest become 'other'
-POST_COLS = 'id,platform,source,external_id,post_url,posted_at,caption,content_id,format'
+POST_COLS = 'id,platform,source,external_id,post_url,posted_at,caption,content_id,format,account_id'
 CONTENT_COLS = 'id,title,body,target_date,posted_at,post_url'
 # Our column -> Blotato's field names, first one found wins.
 METRICS = {
@@ -294,6 +297,46 @@ def instagram_rows(items, handle):
     return out
 
 
+def facebook_rows(items):
+    """Apify facebook-posts-scraper items -> [(post row, snapshot)]. Facebook leaves out a number when
+    it is zero or hidden, so a missing number is not collected, never zero."""
+    out = []
+    for it in items:
+        if it.get('error') or not it.get('postId'):
+            continue
+        posted = iso(it.get('time'))
+        if not posted and it.get('timestamp'):
+            posted = iso(datetime.datetime.fromtimestamp(int(it['timestamp']), tz=datetime.timezone.utc).isoformat())
+        if not posted:
+            continue
+        kinds = [(m.get('__typename') or '').lower() for m in (it.get('media') or []) if isinstance(m, dict)]
+        fmt = 'video' if 'video' in kinds else 'carousel' if len(kinds) > 1 else 'image' if kinds else 'text'
+        likes = it.get('likes') if it.get('likes') is not None else it.get('reactionLikeCount')
+        s = snapshot({'viewsCount': it.get('viewsCount') or it.get('videoViewCount'), 'likesCount': likes,
+                      'commentsCount': it.get('comments'), 'sharesCount': it.get('shares')})
+        out.append(({'platform': 'facebook', 'source': 'apify', 'external_id': str(it['postId']),
+                     'post_url': it.get('url') or it.get('topLevelUrl'), 'posted_at': posted,
+                     'caption': ' '.join((it.get('text') or '').split()) or None, 'format': fmt}, s))
+    return out
+
+
+def match_by_caption(row, candidates):
+    """The same post sent in by another source: same opening words (at least 20 characters) within a day.
+    Blotato and Apify spell Facebook links differently, so the words are the only match. Returns a candidate or None."""
+    key = caption_key(row.get('caption'))
+    if len(key) < 20 or not row.get('posted_at'):
+        return None
+    day = datetime.date.fromisoformat(row['posted_at'][:10])
+    for c in candidates:
+        other = caption_key(c.get('caption'))
+        n = min(len(key), len(other))
+        if n < 20 or key[:n] != other[:n] or not c.get('posted_at'):
+            continue
+        if abs((datetime.date.fromisoformat(str(c['posted_at'])[:10]) - day).days) <= 1:
+            return c
+    return None
+
+
 FOLLOWER_KEYS = ('followersCount', 'followers', 'numberOfSubscribers', 'followerCount', 'numberOfFollowers', 'likes')
 
 
@@ -384,21 +427,23 @@ def apify(method, path, body=None, params=None, token=''):
 
 
 def profile_slug(url):
-    m = re.search(r'linkedin\.com/in/([^/?#]+)', url or '', re.I)
+    m = re.search(r'linkedin\.com/(?:in|company)/([^/?#]+)', url or '', re.I)
     return urllib.parse.unquote(m.group(1)).lower().strip() if m else ''
 
 
 def linkedin_items(profile_url, cap):
-    """Her newest public posts through Apify. Returns (items, cost, error)."""
+    """Her newest public posts through Apify, for one profile or page link or a list of them, in one run.
+    Returns (items, cost, error)."""
+    targets = [profile_url] if isinstance(profile_url, str) else list(profile_url)
     token = apify_token()
     if not token:
         return [], None, 'Apify is not connected: paste the token in Settings > Apify in the app. LinkedIn was skipped.'
-    estimate = round(START_PRICE + MAX_LINKEDIN_POSTS * POST_PRICE, 3)
+    estimate = round(START_PRICE + len(targets) * MAX_LINKEDIN_POSTS * POST_PRICE, 3)
     if estimate > cap:
         return [], None, f'The LinkedIn scan would cost about ${estimate:.2f}, more than the cap of ${cap:.2f}, so it was skipped.'
     try:
         run = apify('POST', f'acts/{ACTOR}/runs',
-                    body={'targetUrls': [profile_url], 'postedLimit': 'month', 'includeReposts': False,
+                    body={'targetUrls': targets, 'postedLimit': 'month', 'includeReposts': False,
                           'includeQuotePosts': False, 'maxPosts': MAX_LINKEDIN_POSTS},
                     params={'maxTotalChargeUsd': f'{cap:.2f}', 'waitForFinish': 60}, token=token)['data']
         deadline = time.time() + 8 * 60
@@ -418,8 +463,9 @@ def linkedin_items(profile_url, cap):
 
 
 def linkedin_posts(items, profile_url):
-    """Apify items -> (post row, snapshot) pairs for her own posts, reposts left out."""
-    mine = profile_slug(profile_url)
+    """Apify items -> (post row, snapshot) pairs for her own posts (her profile and her company page),
+    reposts left out. Each row carries _who, the profile or page slug it came from."""
+    mine = {profile_slug(u) for u in ([profile_url] if isinstance(profile_url, str) else profile_url)} - {''}
     out = []
     for it in items:
         if it.get('type') not in (None, 'post'):
@@ -427,8 +473,9 @@ def linkedin_posts(items, profile_url):
         if it.get('repost') or it.get('reposted') or it.get('isRepost'):
             continue
         author = it.get('author') or {}
-        who = profile_slug(author.get('linkedinUrl') or '') or (author.get('publicIdentifier') or '').lower()
-        if who and mine and who != mine:
+        who = (profile_slug(author.get('linkedinUrl') or '') or (author.get('universalName') or '').lower()
+               or (author.get('publicIdentifier') or '').lower())
+        if who and mine and who not in mine:
             continue
         link = (it.get('linkedinUrl') or (it.get('socialContent') or {}).get('shareUrl') or '').split('?')[0]
         key = post_key(link)
@@ -438,7 +485,7 @@ def linkedin_posts(items, profile_url):
         eng = it.get('engagement') or {}
         s = snapshot({'likesCount': eng.get('likes'), 'commentsCount': eng.get('comments'), 'sharesCount': eng.get('shares')})
         out.append(({'platform': 'linkedin', 'source': 'linkedin', 'external_id': key, 'post_url': link, 'posted_at': posted,
-                     'caption': ' '.join((it.get('content') or '').split()), 'format': linkedin_format(it)}, s))
+                     'caption': ' '.join((it.get('content') or '').split()), 'format': linkedin_format(it), '_who': who}, s))
     return out
 
 
@@ -507,7 +554,7 @@ def followers(accounts):
     return saved, round(cost, 4), skipped
 
 
-def instagram_pull(store, accounts, since, cap):
+def instagram_pull(store, accounts, since, cap):  # since: ISO time, the start of the window
     """Her own Instagram posts through Apify, every run. A post Blotato already sent in gets the
     new numbers on its existing row (matched by the post's short code in its link). Returns (seen, cost, error)."""
     token = apify_token()
@@ -525,17 +572,114 @@ def instagram_pull(store, accounts, since, cap):
         if err:
             return seen, round(cost, 4), f'Instagram through Apify did not finish: {err}.'
         for row, s in instagram_rows(items, handle):
-            same = api('GET', f'posts?platform=eq.instagram&source=neq.apify&post_url=like.*{q(row["external_id"])}*&select=id,format,deleted_at&limit=1')
+            row['account_id'] = a['id']
+            same = api('GET', f'posts?platform=eq.instagram&source=neq.apify&post_url=like.*{q(row["external_id"])}*&select=id,format,account_id,deleted_at&limit=1')
             if same:
                 pid = None if same[0].get('deleted_at') else same[0]['id']
-                if pid and row['format'] and not same[0].get('format'):
-                    api('PATCH', f'posts?id=eq.{q(pid)}', {'format': row['format']})
+                patch = {k: row[k] for k in ('format', 'account_id') if row.get(k) and not same[0].get(k)}
+                if pid and patch:
+                    api('PATCH', f'posts?id=eq.{q(pid)}', patch)
             else:
                 pid, _ = store.upsert(row)
             seen += 1
             if pid and s:
                 store.add_snapshots(pid, [(now_, s)])
     return seen, round(cost, 4), None
+
+
+def facebook_pull(store, accounts, since, cap):
+    """Her Facebook posts through Apify. A post Blotato already sent in (same words, same day) keeps its
+    row and gets the new numbers. Returns (seen, cost, error)."""
+    token = apify_token()
+    fb = [x for x in accounts if x['platform'] == 'facebook']
+    if not fb or not token:
+        return 0, None, None if not fb else 'Facebook was skipped: Apify is not connected (Settings > Apify).'
+    seen, cost = 0, 0.0
+    now_ = utcnow().isoformat(timespec='seconds')
+    days = max(1, (utcnow() - datetime.datetime.fromisoformat(since.replace('Z', '+00:00'))).days)
+    others = api('GET', f'posts?platform=eq.facebook&source=neq.apify&posted_at=gte.{q(since)}&select=id,caption,posted_at,format,account_id,deleted_at') or []
+    for a in fb:
+        items, c, err = small_run('apify~facebook-posts-scraper', {'startUrls': [{'url': a['url']}], 'resultsLimit': 40,
+                                  'onlyPostsNewerThan': f'{days} days'}, cap, token)
+        cost += c or 0
+        if err:
+            return seen, round(cost, 4), f'{a["label"]} posts did not finish: {err}.'
+        for row, s in facebook_rows(items):
+            row['account_id'] = a['id']
+            twin = match_by_caption(row, others)
+            if twin:
+                pid = None if twin.get('deleted_at') else twin['id']
+                patch = {k: row[k] for k in ('format', 'account_id') if row.get(k) and not twin.get(k)}
+                if pid and patch:
+                    api('PATCH', f'posts?id=eq.{q(pid)}', patch)
+            else:
+                pid, _ = store.upsert(row)
+            seen += 1
+            if pid and s:
+                store.add_snapshots(pid, [(now_, s)])
+    return seen, round(cost, 4), None
+
+
+def linkedin_pull(store, accounts, cap):
+    """Her LinkedIn profile and company page through Apify in one run. Falls back to the profile link in
+    Settings when social_accounts has no LinkedIn row. Returns (seen, cost, error)."""
+    li = [x for x in accounts if x['platform'] == 'linkedin']
+    if not li:
+        link = api('GET', 'connections?key=eq.linkedin_profile&select=url')
+        url = (link[0].get('url') if link else None) or ''
+        if not profile_slug(url):
+            return 0, None, 'LinkedIn was skipped: no LinkedIn link in Settings or in social_accounts.'
+        li = [{'id': None, 'url': url, 'label': 'LinkedIn'}]
+    items, cost, err = linkedin_items([a['url'] for a in li], cap)
+    by_slug = {profile_slug(a['url']): a['id'] for a in li}
+    now_ = utcnow().isoformat(timespec='seconds')
+    rows = linkedin_posts(items, [a['url'] for a in li])
+    for row, s in rows:
+        aid = by_slug.get(row.pop('_who', ''))
+        if aid:
+            row['account_id'] = aid
+        pid, _ = store.upsert(row)
+        if pid and s:
+            store.add_snapshots(pid, [(now_, s)])
+    return len(rows), cost, err
+
+
+def social_pull(store, result, days=SOCIAL_DAYS, linkedin_cap=0.20):
+    """Everything the Social Media page needs from outside Blotato, for the last `days` days:
+    Instagram, Facebook and LinkedIn through Apify, YouTube from its free feed, and follower counts."""
+    accounts = api('GET', 'social_accounts?deleted_at=is.null&select=id,platform,url,label&order=created_at.asc') or []
+    since = iso((utcnow() - datetime.timedelta(days=days)).isoformat())
+    for name, fn in (('instagram', lambda: instagram_pull(store, accounts, since, INSTAGRAM_CAP)),
+                     ('facebook', lambda: facebook_pull(store, accounts, since, FACEBOOK_CAP)),
+                     ('linkedin', lambda: linkedin_pull(store, accounts, linkedin_cap))):
+        seen, cost, err = fn()
+        result[name] = {'posts_seen': seen, 'cost_usd': cost}
+        if err:
+            result['skipped'].append(err)
+    yt_seen = 0
+    now_ = utcnow().isoformat(timespec='seconds')
+    for a in [x for x in accounts if x['platform'] == 'youtube']:
+        cid = youtube_channel_id(a['url'])
+        if not cid:
+            result['skipped'].append(f'{a["label"]}: use the channel link that has /channel/UC in it.')
+            continue
+        xml, err = youtube_feed(cid)
+        if err:
+            result['skipped'].append(err)
+            continue
+        for row, s in youtube_entries(xml):
+            if not row['posted_at'] or row['posted_at'] < since:
+                continue
+            row['account_id'] = a['id']
+            pid, _ = store.upsert(row)
+            yt_seen += 1
+            if pid and s:
+                store.add_snapshots(pid, [(now_, s)])
+    result['youtube'] = {'posts_seen': yt_seen}
+    saved, f_cost, f_skipped = followers(accounts)
+    result['followers'] = {'accounts': len(accounts), 'saved': saved, 'cost_usd': f_cost}
+    result['skipped'].extend(f_skipped)
+    return accounts
 
 
 def youtube_feed(channel_id):
@@ -560,7 +704,7 @@ class Store:
         rows = api('GET', f'posts?source=eq.{q(row["source"])}&external_id=eq.{q(row["external_id"])}&select={POST_COLS}')
         if rows:
             cur = rows[0]
-            patch = {k: row[k] for k in ('post_url', 'caption', 'posted_at', 'format') if row.get(k) and row[k] != cur.get(k)}
+            patch = {k: row[k] for k in ('post_url', 'caption', 'posted_at', 'format', 'account_id') if row.get(k) and row[k] != cur.get(k)}
             if not cur.get('content_id'):
                 cid = match_content(row, self.pieces)
                 if cid:
@@ -634,55 +778,37 @@ def pull(cap):
             store.add_snapshots(pid, pairs)
         result['blotato'] = {'posts_seen': seen, 'since': since[:10]}
 
-    # LinkedIn: her own public posts through Apify.
-    link = api('GET', 'connections?key=eq.linkedin_profile&select=url')
-    profile = (link[0].get('url') if link else None) or ''
-    if not profile_slug(profile):
-        result['skipped'].append('LinkedIn was skipped: her profile link is not in Settings yet (LinkedIn profile).')
-    else:
-        items, cost, err = linkedin_items(profile, cap)
-        if err:
-            result['skipped'].append(err)
-        posts = linkedin_posts(items, profile)
-        now_ = utcnow().isoformat(timespec='seconds')
-        for row, s in posts:
-            pid, _ = store.upsert(row)
-            if pid and s:
-                store.add_snapshots(pid, [(now_, s)])
-        result['linkedin'] = {'posts_seen': len(posts), 'cost_usd': cost,
-                              'cost_estimate_usd': round(START_PRICE + MAX_LINKEDIN_POSTS * POST_PRICE, 3) if cost is None and not err else None}
-
-    # Instagram through Apify, YouTube videos and follower counts for the Social Media page.
-    accounts = api('GET', 'social_accounts?deleted_at=is.null&select=id,platform,url,label&order=created_at.asc') or []
-    ig_seen, ig_cost, ig_err = instagram_pull(store, accounts, since, INSTAGRAM_CAP)
-    result['instagram_apify'] = {'posts_seen': ig_seen, 'cost_usd': ig_cost}
-    if ig_err:
-        result['skipped'].append(ig_err)
-    yt_seen = 0
-    now_ = utcnow().isoformat(timespec='seconds')
-    for a in [x for x in accounts if x['platform'] == 'youtube']:
-        cid = youtube_channel_id(a['url'])
-        if not cid:
-            result['skipped'].append(f'{a["label"]}: use the channel link that has /channel/UC in it.')
-            continue
-        xml, err = youtube_feed(cid)
-        if err:
-            result['skipped'].append(err)
-            continue
-        for row, s in youtube_entries(xml):
-            if not row['posted_at'] or row['posted_at'] < since:
-                continue
-            pid, _ = store.upsert(row)
-            yt_seen += 1
-            if pid and s:
-                store.add_snapshots(pid, [(now_, s)])
-    result['youtube'] = {'posts_seen': yt_seen}
-    saved, f_cost, f_skipped = followers(accounts)
-    result['followers'] = {'accounts': len(accounts), 'saved': saved, 'cost_usd': f_cost}
-    result['skipped'].extend(f_skipped)
+    # Instagram, Facebook and LinkedIn through Apify, YouTube and follower counts (also run alone on Fridays).
+    social_pull(store, result, linkedin_cap=cap)
 
     result.update({'posts_new': store.new_posts, 'snapshots_added': store.snapshots, 'tied_to_content': store.matched})
     print(json.dumps(result, ensure_ascii=False))
+
+
+def scorecard():
+    """The Friday social scorecard: no Blotato, no Claude. Prints a short Markdown note (the app saves it
+    as the page "Social scorecard") and the details as JSON on stderr. Exits non-zero when Apify is missing."""
+    if not apify_token():
+        sys.exit('Apify is not connected: paste your token in Settings > Apify in the app.')
+    store = Store()
+    result = {'skipped': []}
+    accounts = social_pull(store, result)
+    cost = sum((result.get(k) or {}).get('cost_usd') or 0 for k in ('instagram', 'facebook', 'linkedin', 'followers'))
+    snaps = {r['account_id']: r['followers'] for r in api('GET', f'follower_snapshots?taken_on=eq.{today().isoformat()}&select=account_id,followers') or []}
+    lines = [f'Pulled the last {SOCIAL_DAYS} days of posts.', '']
+    for k, name in (('instagram', 'Instagram'), ('facebook', 'Facebook'), ('linkedin', 'LinkedIn'), ('youtube', 'YouTube')):
+        n = (result.get(k) or {}).get('posts_seen')
+        if n is not None:
+            lines.append(f'- {name}: {n} post{"" if n == 1 else "s"}')
+    counted = [f'{a["label"]} {snaps[a["id"]]:,}' for a in accounts if snaps.get(a['id']) is not None]
+    if counted:
+        lines.append('- Followers: ' + ', '.join(counted))
+    lines.append('')
+    for s_ in result['skipped']:
+        lines.append(f'Did not work: {s_}')
+    lines.append(f'Apify cost: ${cost:.2f}.')
+    print('\n'.join(lines))
+    print(json.dumps(result, ensure_ascii=False), file=sys.stderr)
 
 
 def summary(weeks):
@@ -709,9 +835,12 @@ def main():
     sub = p.add_subparsers(dest='cmd', required=True)
     s = sub.add_parser('pull'); s.add_argument('--cap', type=float, default=0.20)
     s = sub.add_parser('summary'); s.add_argument('--weeks', type=int, default=4)
+    sub.add_parser('scorecard')
     a = p.parse_args()
     if a.cmd == 'pull':
         pull(max(0.01, a.cap))
+    elif a.cmd == 'scorecard':
+        scorecard()
     else:
         summary(max(1, min(a.weeks, 26)))
 

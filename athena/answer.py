@@ -15,6 +15,8 @@ Three kinds of row:
     athena/linkedin.py (LINKEDIN.md); the brief itself is saved as the page "LinkedIn comments".
   - the Post numbers job: a report that copies how her posts did into posts and post_metrics
     through athena/stats.py (STATS.md); its note is saved as the page "Post numbers".
+  - the Social scorecard job (Fridays): no Claude either. athena/stats.py scorecard pulls her own posts
+    from the last 30 days through Apify; its note is saved as the page "Social scorecard".
   - the Viral Outlier Review job: no Claude at all. athena/outliers.py pulls recent reels through
     Apify and marks the outliers; its note is saved as the page "Viral Outlier Review".
 
@@ -40,6 +42,11 @@ ALLOWED_TOOLS = ['Read', 'Write', 'Glob', 'Grep', 'Bash(python3 athena/db.py:*)'
                  'Bash(python3 athena/gcal.py:*)', 'Bash(python3 athena/linkedin.py:*)',
                  'Bash(python3 athena/stats.py:*)']
 BRIEF_TYPES = {'monday_plan': 'Monday plan', 'friday_wrap': 'Friday wrap'}
+# Jobs that are only a script, no Claude: key -> (command, page the note is saved as, where she reads it).
+SCRIPT_JOBS = {
+    'outlier_review': (['athena/outliers.py', 'refresh'], 'Viral Outlier Review', 'the Viral Outlier Review page'),
+    'social_scorecard': (['athena/stats.py', 'scorecard'], 'Social scorecard', 'the Social Media page'),
+}
 FIELDS = ['client_hours', 'colibrios_hours', 'decision_needed', 'gone_quiet', 'carry_over']
 
 
@@ -215,8 +222,9 @@ def save_report(job, text):
         return save_page('LinkedIn comments', text, 'Saved to the Comment desk on the Marketing page.')
     if job['key'] == 'post_numbers':
         return save_page('Post numbers', text, 'Saved to the Results tab on the Marketing page.')
-    if job['key'] == 'outlier_review':
-        return save_page('Viral Outlier Review', text, 'Saved to the Viral Outlier Review page.')
+    if job['key'] in SCRIPT_JOBS:
+        _, title, where = SCRIPT_JOBS[job['key']]
+        return save_page(title, text, f'Saved to {where}.')
     if job['key'] == 'daily_brief':
         rows = api('GET', 'pages?title=eq.Daily%20brief&folder=eq.Athena&deleted_at=is.null&select=id,extra&limit=1')
         if rows:
@@ -254,11 +262,11 @@ def run_script(args, timeout):
 
 def handle(req):
     job = job_for(req)
-    if job and job['key'] == 'outlier_review':  # a script, no Claude
+    if job and job['key'] in SCRIPT_JOBS:  # a script, no Claude
         try:
-            text, err = run_script(['athena/outliers.py', 'refresh'], JOB_TIMEOUT)
+            text, err = run_script(SCRIPT_JOBS[job['key']][0], JOB_TIMEOUT)
         except subprocess.TimeoutExpired:
-            return None, 'The Viral Outlier Review ran out of time.'
+            return None, f'The {job["title"]} ran out of time.'
         if not text:
             return None, err
         return f'{text}\n\n_{save_report(job, text)}_', None
