@@ -13,7 +13,7 @@ Your only writes are what `pull` does and the note you hand back. Never post, sc
 
 ### Steps
 
-1. `pull` once. It also reads her YouTube videos (free channel feed) and one follower count per account in social_accounts for the Social Media page. If it says Blotato or Apify is not connected, or LinkedIn is skipped because her profile link is not in Settings, say so plainly at the top of the note and go on with what did come in.
+1. `pull` once. It also reads her own Instagram posts through Apify (likes, comments, reel views), her YouTube videos (free channel feed) and one follower count per account in social_accounts for the Social Media page. If it says Blotato or Apify is not connected, or LinkedIn is skipped because her profile link is not in Settings, say so plainly at the top of the note and go on with what did come in.
 2. `summary` once.
 3. Hand back the note. The app saves it as the page "Post numbers" and shows it on the Results tab.
 

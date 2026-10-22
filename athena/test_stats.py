@@ -180,5 +180,24 @@ class SocialMedia(unittest.TestCase):
         self.assertIsNone(stats.follower_input('twitter', 'https://x.com/sholbk'))
 
 
+class InstagramApify(unittest.TestCase):
+    items = [
+        {'shortCode': 'DeVQ2', 'type': 'Video', 'timestamp': '2026-10-21T22:57:55.000Z', 'ownerUsername': 'colibrios.app',
+         'likesCount': 4, 'commentsCount': 1, 'videoViewCount': 160, 'caption': 'Registration  week', 'url': 'https://www.instagram.com/p/DeVQ2/'},
+        {'shortCode': 'DeX1', 'type': 'Sidecar', 'timestamp': '2026-10-20T00:00:00.000Z', 'ownerUsername': 'colibrios.app', 'likesCount': -1, 'commentsCount': 0},
+        {'shortCode': 'Other', 'type': 'Image', 'timestamp': '2026-10-20T00:00:00.000Z', 'ownerUsername': 'someone.else', 'likesCount': 9},
+        {'url': 'https://www.instagram.com/colibrios.app', 'error': 'no_items'},
+    ]
+
+    def test_rows(self):
+        rows = stats.instagram_rows(self.items, 'colibrios.app')
+        self.assertEqual([r['external_id'] for r, _ in rows], ['DeVQ2', 'DeX1'])
+        row, s = rows[0]
+        self.assertEqual((row['source'], row['format'], row['caption']), ('apify', 'video', 'Registration week'))
+        self.assertEqual((s['views'], s['likes'], s['comments']), (160, 4, 1))
+        self.assertEqual(rows[1][0]['format'], 'carousel')
+        self.assertIsNone(rows[1][1]['likes'])  # hidden likes are not collected, never zero
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=1)

@@ -46,11 +46,24 @@ export function times(r) {
   return `${r >= 10 ? r.toFixed(1).replace(/\.0$/, '') : r.toFixed(1)}×`;
 }
 
+const FIELDS = ['views', 'reach', 'likes', 'comments', 'saves', 'shares'];
+
+// One set of numbers per post: for each number, the newest snapshot that has it. Apify sends fresh
+// likes and comments every refresh; Blotato's weekly snapshot may be the only one with photo views.
+export function mergeLatest(metrics) {
+  const out = {};
+  const sorted = metrics.slice().sort((a, b) => (a.fetched_at < b.fetched_at ? 1 : -1));
+  for (const m of sorted) {
+    const cur = out[m.post_id] || (out[m.post_id] = { post_id: m.post_id, fetched_at: m.fetched_at });
+    for (const k of FIELDS) if (cur[k] == null && m[k] != null) cur[k] = m[k];
+  }
+  return out;
+}
+
 // posts: rows of posts; metrics: rows of post_metrics, any order. Returns everything the page shows.
 export function scorecard(posts, metrics, now = new Date()) {
   const t = now.getTime();
-  const latest = {};
-  for (const m of metrics) if (!latest[m.post_id] || m.fetched_at > latest[m.post_id].fetched_at) latest[m.post_id] = m;
+  const latest = mergeLatest(metrics);
 
   const rows = posts.map((p) => {
     const m = latest[p.id] || null;

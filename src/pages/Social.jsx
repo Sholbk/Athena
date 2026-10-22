@@ -194,7 +194,7 @@ function RunBar({ lastPull, onDone }) {
     <div className="notice soft find-ideas">
       <div>
         <strong>{lastPull ? `Numbers from ${fWhen.format(new Date(lastPull))}` : 'No numbers yet'}</strong>
-        <p>{job?.enabled ? 'These refresh by themselves every Monday at 7:00 AM.' : 'Automatic refresh is off (Settings, Post numbers), so they refresh from this button.'} Instagram and Facebook numbers come from Blotato about once a week.</p>
+        <p>{job?.enabled ? 'These refresh by themselves every Monday at 7:00 AM.' : 'Automatic refresh is off (Settings, Post numbers), so they refresh from this button.'} Instagram, LinkedIn and follower counts come from Apify on every refresh. YouTube comes from its free feed, and Facebook from Blotato about once a week.</p>
         {working && <p className="small">Athena is working on it now.</p>}
         {run?.status === 'failed' && !working && <p className="small late">The last run did not finish: {(run.error || '').slice(0, 200)}</p>}
         {msg && <p className="small">{msg}</p>}

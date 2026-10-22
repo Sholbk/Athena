@@ -1,7 +1,7 @@
 // node --test tests/
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { audience, median, nextWeekTip, pct, scorecard, shortNum, strongestLine, times } from '../src/lib/social.js';
+import { audience, median, mergeLatest, nextWeekTip, pct, scorecard, shortNum, strongestLine, times } from '../src/lib/social.js';
 
 const NOW = new Date('2026-10-22T18:00:00Z');
 const daysAgo = (d) => new Date(NOW.getTime() - d * 86400000).toISOString();
@@ -80,4 +80,12 @@ test('words', () => {
   assert.match(strongestLine({ platform: 'instagram', format: 'video', ratio: 5.9 }), /was an Instagram reel at 5\.9× your usual/);
   assert.match(strongestLine({ platform: 'youtube', format: 'video', ratio: 2 }), /was a YouTube video/);
   assert.equal(nextWeekTip({ worked: [], week: [] }).title, 'Post something this week.');
+});
+
+test('numbers merge: newest value of each number, from whichever snapshot has it', () => {
+  const m = mergeLatest([
+    { post_id: 'a', fetched_at: '2026-10-15T00:00:00Z', views: 37, reach: 23, likes: 0, comments: 0 },
+    { post_id: 'a', fetched_at: '2026-10-22T00:00:00Z', views: null, likes: 4, comments: 1 },
+  ]);
+  assert.deepEqual([m.a.views, m.a.reach, m.a.likes, m.a.comments, m.a.fetched_at], [37, 23, 4, 1, '2026-10-22T00:00:00Z']);
 });
