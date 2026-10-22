@@ -11,7 +11,9 @@ profile link from the connections row linkedin_profile): reactions, comments and
 shows impressions only to her. Everything lands in the tables posts and post_metrics, and each
 post is tied to the content piece it came from when the post link or the caption matches.
 
-For the Social Media page it also reads her YouTube videos from YouTube's free channel feed (views
+For the Social Media page it also reads her own Instagram posts through Apify on every run (likes,
+comments, reel views; Blotato's weekly snapshots still add photo views and reach), her YouTube videos
+from YouTube's free channel feed (views
 and likes, no Apify), marks each post's format (video, image, carousel or text), and saves one
 follower count a day for each row in social_accounts (Instagram, YouTube, LinkedIn and Facebook
 pages through small Apify runs, together under FOLLOWER_CAP).
@@ -32,6 +34,8 @@ PAGE = 50                # published-posts page size (Blotato allows up to 100)
 MAX_LINKEDIN_POSTS = 20
 POST_PRICE, START_PRICE = 0.002, 0.00005
 FOLLOWER_CAP = 0.05       # dollars per run for all follower checks together
+INSTAGRAM_CAP = 0.15      # dollars per run for her own Instagram posts (about $0.0023 a post)
+MAX_INSTAGRAM_POSTS = 40
 YOUTUBE_FEED = 'https://www.youtube.com/feeds/videos.xml?channel_id='
 BLOTATO_PLATFORMS = {'instagram', 'facebook', 'twitter', 'youtube'}   # what posts.platform allows; the rest become 'other'
 POST_COLS = 'id,platform,source,external_id,post_url,posted_at,caption,content_id,format'
@@ -268,6 +272,28 @@ def html_unescape(t):
     return (t or '').replace('&amp;', '&').replace('&quot;', '"').replace('&#39;', "'").replace('&lt;', '<').replace('&gt;', '>')
 
 
+def instagram_rows(items, handle):
+    """Apify instagram-post-scraper items -> [(post row, snapshot)] for her own posts.
+    Views only exist for videos; Instagram hides photo views from outside readers."""
+    out = []
+    for it in items:
+        code = it.get('shortCode')
+        posted = iso(it.get('timestamp'))
+        if it.get('error') or not code or not posted:
+            continue
+        if handle and (it.get('ownerUsername') or handle).lower() != handle.lower():
+            continue
+        kind = (it.get('type') or '').lower()
+        fmt = 'video' if kind == 'video' else 'carousel' if kind == 'sidecar' else 'image' if kind == 'image' else None
+        link = it.get('url') or f'https://www.instagram.com/p/{code}/'
+        pos = lambda v: v if (to_int(v) or 0) >= 0 else None   # Instagram reports hidden likes as -1
+        s = snapshot({'viewsCount': it.get('videoViewCount') or it.get('videoPlayCount'), 'likesCount': pos(it.get('likesCount')),
+                      'commentsCount': pos(it.get('commentsCount'))})
+        out.append(({'platform': 'instagram', 'source': 'apify', 'external_id': code, 'post_url': link, 'posted_at': posted,
+                     'caption': ' '.join((it.get('caption') or '').split()) or None, 'format': fmt}, s))
+    return out
+
+
 FOLLOWER_KEYS = ('followersCount', 'followers', 'numberOfSubscribers', 'followerCount', 'numberOfFollowers', 'likes')
 
 
@@ -481,6 +507,37 @@ def followers(accounts):
     return saved, round(cost, 4), skipped
 
 
+def instagram_pull(store, accounts, since, cap):
+    """Her own Instagram posts through Apify, every run. A post Blotato already sent in gets the
+    new numbers on its existing row (matched by the post's short code in its link). Returns (seen, cost, error)."""
+    token = apify_token()
+    if not token:
+        return 0, None, 'Instagram through Apify was skipped: Apify is not connected (Settings > Apify).'
+    seen, cost = 0, 0.0
+    now_ = utcnow().isoformat(timespec='seconds')
+    for a in [x for x in accounts if x['platform'] == 'instagram']:
+        m = re.search(r'instagram\.com/([^/?#]+)', a['url'])
+        handle = m.group(1) if m else a['url']
+        days = max(1, (utcnow() - datetime.datetime.fromisoformat(since.replace('Z', '+00:00'))).days)
+        items, c, err = small_run('apify~instagram-post-scraper', {'username': [handle], 'resultsLimit': MAX_INSTAGRAM_POSTS,
+                                  'onlyPostsNewerThan': f'{days} days', 'dataDetailLevel': 'detailedData'}, cap, token)
+        cost += c or 0
+        if err:
+            return seen, round(cost, 4), f'Instagram through Apify did not finish: {err}.'
+        for row, s in instagram_rows(items, handle):
+            same = api('GET', f'posts?platform=eq.instagram&source=neq.apify&post_url=like.*{q(row["external_id"])}*&select=id,format,deleted_at&limit=1')
+            if same:
+                pid = None if same[0].get('deleted_at') else same[0]['id']
+                if pid and row['format'] and not same[0].get('format'):
+                    api('PATCH', f'posts?id=eq.{q(pid)}', {'format': row['format']})
+            else:
+                pid, _ = store.upsert(row)
+            seen += 1
+            if pid and s:
+                store.add_snapshots(pid, [(now_, s)])
+    return seen, round(cost, 4), None
+
+
 def youtube_feed(channel_id):
     """Fetch YouTube's free channel feed. Returns (xml text, error)."""
     try:
@@ -595,8 +652,12 @@ def pull(cap):
         result['linkedin'] = {'posts_seen': len(posts), 'cost_usd': cost,
                               'cost_estimate_usd': round(START_PRICE + MAX_LINKEDIN_POSTS * POST_PRICE, 3) if cost is None and not err else None}
 
-    # YouTube videos and follower counts for the Social Media page.
+    # Instagram through Apify, YouTube videos and follower counts for the Social Media page.
     accounts = api('GET', 'social_accounts?deleted_at=is.null&select=id,platform,url,label&order=created_at.asc') or []
+    ig_seen, ig_cost, ig_err = instagram_pull(store, accounts, since, INSTAGRAM_CAP)
+    result['instagram_apify'] = {'posts_seen': ig_seen, 'cost_usd': ig_cost}
+    if ig_err:
+        result['skipped'].append(ig_err)
     yt_seen = 0
     now_ = utcnow().isoformat(timespec='seconds')
     for a in [x for x in accounts if x['platform'] == 'youtube']:
