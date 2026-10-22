@@ -26,8 +26,8 @@ DAYS = 14
 LIKES_BAR = 10000
 TIMES_BAR = 3
 COST_CAP = 1.00          # dollars per run, pull and transcripts together
-PULL_CAP = 0.25
-MAX_REELS = 60           # per account; nobody posts 60 reels in 14 days
+PULL_CAP = 0.60          # 18 accounts read about 150 to 250 reels in 14 days at $0.0023 each
+MAX_REELS = 30           # per account; the busiest post about 2 a day
 REEL_PRICE, START_PRICE, TRANSCRIPT_MINUTE = 0.0023, 0.001, 0.041   # Apify BRONZE prices, Oct 2026
 
 
