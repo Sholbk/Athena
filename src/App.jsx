@@ -59,9 +59,10 @@ function Shell({ email }) {
         <div className="wrap">
           <div className="bar">
             <div className="brand">
-              <Owl />
+              <Owl size={60} />
               <div>
-                <h1>Athena</h1>
+                <h1 className="wordmark">Athena</h1>
+                <p className="tagline">Chief of Staff</p>
                 <p>{longLabel(todayYMD())}, Mountain time</p>
               </div>
             </div>
@@ -99,13 +100,13 @@ function Shell({ email }) {
 }
 
 function Splash() {
-  return <div className="center"><Owl size={44} /><p className="muted">Opening Athena…</p></div>;
+  return <div className="center"><Owl size={96} /><p className="muted">Opening Athena…</p></div>;
 }
 
 function NotAllowed({ email }) {
   return (
     <div className="center">
-      <Owl size={44} />
+      <Owl size={96} />
       <h2>This account is not on Athena's list</h2>
       <p className="muted">You signed in as {email}. Only approved accounts can open Athena.</p>
       <button className="btn" type="button" onClick={() => supabase.auth.signOut()}>Sign in with a different account</button>

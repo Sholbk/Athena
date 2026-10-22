@@ -31,12 +31,15 @@ button,input,select,textarea{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
 .wrap{max-width:1240px;margin:0 auto;padding-inline:clamp(16px,3vw,32px)}
 .muted{color:var(--muted)} .small{font-size:13px} .mono{font-family:var(--f-mono);font-size:12.5px}
-.owl .body{fill:var(--accent)} .owl .eye{fill:var(--card)} .owl .pupil{fill:var(--ink)} .owl .beak{fill:var(--gold)}
+.mark{display:inline-block;flex:none;background:var(--accent);-webkit-mask:url(/athena-mark.png) center/contain no-repeat;mask:url(/athena-mark.png) center/contain no-repeat}
+.wordmark{font-family:"Federo","Bricolage Grotesque",serif !important;font-weight:400 !important;text-transform:uppercase;letter-spacing:.14em}
+.tagline{font-family:"Josefin Sans",system-ui,sans-serif;font-weight:300;letter-spacing:.02em}
 
 .top{position:sticky;top:0;z-index:30;background:var(--paper);border-bottom:1px solid var(--line)}
 .bar{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;padding-block:14px 8px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:10px;min-width:0}
-.brand h1{font:650 22px/1.1 var(--f-display);margin:0}
+.brand h1{font:400 23px/1.1 var(--f-display);margin:0}
+.brand .tagline{margin:0;color:var(--ink);font-size:15px;line-height:1.2}
 .brand p{margin:2px 0 0;color:var(--muted);font-size:13.5px}
 .who{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin-bottom:-1px}
@@ -76,6 +79,8 @@ label.f{display:grid;gap:4px;font-size:13px;font-weight:700;color:var(--muted);m
 
 .center{min-height:100vh;display:grid;place-content:center;justify-items:center;gap:10px;text-align:center;padding:24px}
 .center h2{font:650 26px/1.2 var(--f-display);margin:6px 0 0}
+.center h2.wordmark{font-size:40px;margin-top:14px}
+.center .tagline{font-size:24px;color:var(--ink);margin:0 0 14px}
 .center p{margin:0 0 10px;max-width:42ch}
 .soon{max-width:640px} .soon h2{font-size:24px;margin:4px 0 8px}
 
