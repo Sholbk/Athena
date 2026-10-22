@@ -15,6 +15,8 @@ Three kinds of row:
     athena/linkedin.py (LINKEDIN.md); the brief itself is saved as the page "LinkedIn comments".
   - the Post numbers job: a report that copies how her posts did into posts and post_metrics
     through athena/stats.py (STATS.md); its note is saved as the page "Post numbers".
+  - the Viral Outlier Review job: no Claude at all. athena/outliers.py pulls recent reels through
+    Apify and marks the outliers; its note is saved as the page "Viral Outlier Review".
 
 Needs SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY and CLAUDE_CODE_OAUTH_TOKEN. BLOTATO_API_KEY lets
 Athena make post images (POSTS.md); without it she still writes the captions. APIFY_TOKEN lets the
@@ -213,6 +215,8 @@ def save_report(job, text):
         return save_page('LinkedIn comments', text, 'Saved to the Comment desk on the Marketing page.')
     if job['key'] == 'post_numbers':
         return save_page('Post numbers', text, 'Saved to the Results tab on the Marketing page.')
+    if job['key'] == 'outlier_review':
+        return save_page('Viral Outlier Review', text, 'Saved to the Viral Outlier Review page.')
     if job['key'] == 'daily_brief':
         rows = api('GET', 'pages?title=eq.Daily%20brief&folder=eq.Athena&deleted_at=is.null&select=id,extra&limit=1')
         if rows:
@@ -238,8 +242,26 @@ def save_report(job, text):
 
 
 # ---------- One row ----------
+def run_script(args, timeout):
+    """A job that is only a script, such as the Viral Outlier Review. Returns (stdout, error)."""
+    p = subprocess.run([sys.executable, *args], cwd=REPO, capture_output=True, text=True, timeout=timeout)
+    if p.stderr.strip():
+        print(p.stderr.strip()[-2000:])
+    if p.returncode != 0:
+        return None, (p.stderr.strip().splitlines() or [f'{args[0]} exited with code {p.returncode}'])[-1]
+    return p.stdout.strip() or 'Done.', None
+
+
 def handle(req):
     job = job_for(req)
+    if job and job['key'] == 'outlier_review':  # a script, no Claude
+        try:
+            text, err = run_script(['athena/outliers.py', 'refresh'], JOB_TIMEOUT)
+        except subprocess.TimeoutExpired:
+            return None, 'The Viral Outlier Review ran out of time.'
+        if not text:
+            return None, err
+        return f'{text}\n\n_{save_report(job, text)}_', None
     if job and job['kind'] == 'report':
         try:
             text, err = run_claude(report_prompt(job), JOB_TIMEOUT)
