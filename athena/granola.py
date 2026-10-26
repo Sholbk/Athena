@@ -333,7 +333,7 @@ def access_token(data, fresh=False):
         raise GranolaDown('sign-in gave no token')
     data['access_token'] = t['access_token']
     data['refresh_token'] = t.get('refresh_token') or data['refresh_token']
-    data['expires_at'] = (now() + datetime.timedelta(seconds=int(t.get('expires_in') or 3600))).isoformat()
+    data['expires_at'] = (now() + datetime.timedelta(seconds=int(t.get('expires_in') or 3600))).isoformat(timespec='seconds')
     save(data, data.get('connected_at'))  # at once: Granola may have retired the old refresh token
     return data['access_token']
 
@@ -378,10 +378,10 @@ def pull(data):
 
     data['seen'] = seen
     data['status'] = 'ok'
-    data['last_run_at'] = at.isoformat()
+    data['last_run_at'] = at.isoformat(timespec='seconds')
     data.pop('last_error', None)
     if counts['saved']:
-        data['last_saved_at'] = at.isoformat()
+        data['last_saved_at'] = at.isoformat(timespec='seconds')
         data['saved_total'] = int(data.get('saved_total') or 0) + counts['saved']
     save(data, data.get('connected_at'))
     return counts
@@ -418,12 +418,12 @@ def main():
     try:
         c = pull(data)
     except Reconnect:
-        data.update(status='reconnect', last_run_at=now().isoformat())
+        data.update(status='reconnect', last_run_at=now().isoformat(timespec='seconds'))
         data.pop('access_token', None)
         save(data, data.get('connected_at'))
         sys.exit('Granola: the sign-in no longer works. She reconnects it in Settings, under Granola.')
     except GranolaDown as e:
-        data.update(status='error', last_run_at=now().isoformat(), last_error=str(e)[:80])
+        data.update(status='error', last_run_at=now().isoformat(timespec='seconds'), last_error=str(e)[:80])
         save(data, data.get('connected_at'))
         sys.exit(f'Granola: did not answer properly ({e}). The next run tries again.')
     print(f'Granola: {c["saved"]} new calls saved, {c["waiting"]} waiting for notes, '

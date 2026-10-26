@@ -71,7 +71,11 @@ async function finish(params) {
     }),
   }).catch(() => null);
   const tok = r ? await r.json().catch(() => ({})) : {};
-  if (!r?.ok || !tok.refresh_token) return 'error';
+  if (!r?.ok || !tok.refresh_token) {
+    // For fixing a failed connect from the browser console: the answer's field names, never values.
+    console.warn('Granola token answer', r?.status ?? 'no answer', Object.keys(tok), tok.error || '');
+    return 'error';
+  }
 
   let email = null;
   try { email = JSON.parse(atob(tok.id_token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).email ?? null; } catch { /* no id token */ }
