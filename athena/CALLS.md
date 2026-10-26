@@ -4,6 +4,8 @@ Her recorded calls are pages in the folder "Meetings". Each title starts with th
 
     python3 athena/db.py ls pages --where folder=Meetings --fields id,title
 
+New calls come in from Granola on their own. Before you read them, run `python3 athena/granola.py --status`. If it says Granola is disconnected, was not checked lately, or its last check did not work, say that in one line in what you write, then carry on with the calls that are there.
+
 The page "Calls read" (folder Athena) lists every call already turned into tasks, one exact title per line. If it does not exist yet, create it.
 
 When you are asked to add her to-dos from her calls:

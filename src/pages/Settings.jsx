@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { SUPABASE_URL, supabase } from '../lib/supabase.js';
 import { DAY_NAMES, runJob, scheduleText, useJobs } from '../lib/jobs.js';
 import { Panel, Skel } from '../components/bits.jsx';
+import { finishGranola, startGranola } from '../lib/granola.js';
 
 const ORDER = ['daily_brief', 'monday_plan', 'friday_wrap', 'linkedin_comments', 'post_numbers', 'level10'];
 const fWhen = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Denver', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
@@ -17,6 +18,7 @@ export default function Settings() {
           <Calendars />
           <PostingDays />
           <GoogleCalendar />
+          <Granola />
           <WonderReel />
           <Blotato />
           <Apify />
@@ -183,6 +185,79 @@ function Calendars() {
         </ol>
       </details>
       {err && <p className="form-msg">{err}</p>}
+    </Panel>
+  );
+}
+
+/* ---------- Granola ---------- */
+// Her calls come into the app on their own: athena/granola.py, in the Vault sync run every
+// 15 minutes, saves new ones in the Meetings folder, where Athena turns them into to-dos.
+// One Granola sign-in (src/lib/granola.js). The secret parts are never read back.
+const GRANOLA_RESULT = {
+  connected: 'Connected. New calls start coming in within 15 minutes.',
+  declined: 'Granola was not connected: the sign-in was cancelled.',
+  expired: 'That sign-in took too long or was already used. Click Connect Granola again.',
+  error: 'Granola did not finish connecting. Try Connect Granola again.',
+};
+function Granola() {
+  const [g, setG] = useState(undefined);
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+  const load = useCallback(async () => {
+    // Only the parts that are safe to show: never the tokens.
+    const { data, error } = await supabase.from('connections')
+      .select('email:data->>email,connected_at:data->>connected_at,status:data->>status,last_run_at:data->>last_run_at,saved_total:data->>saved_total')
+      .eq('key', 'granola').maybeSingle();
+    if (error) setMsg(error.message); else setG(data);
+  }, []);
+  useEffect(() => {
+    finishGranola(new URLSearchParams(window.location.search)).then((result) => {
+      if (result) {
+        setMsg(GRANOLA_RESULT[result] || GRANOLA_RESULT.error);
+        window.history.replaceState({}, '', '/settings');
+      }
+      load();
+    });
+  }, [load]);
+
+  const connect = async () => {
+    setBusy(true); setMsg('');
+    try { await startGranola(); } catch (e) { setMsg(e.message); setBusy(false); }
+  };
+  const remove = async () => {
+    if (!confirm('Disconnect Granola? New calls stop coming in. Calls already here stay.')) return;
+    const { error } = await supabase.from('connections').delete().eq('key', 'granola');
+    if (error) setMsg(error.message); else { setMsg('Disconnected.'); load(); }
+  };
+
+  const total = Number(g?.saved_total || 0);
+  const broken = g?.status === 'reconnect';
+  return (
+    <Panel title="Granola" eyebrow="Calls to to-dos">
+      <p className="muted small" style={{ marginTop: 0 }}>Connect Granola and your calls come in on their own, every 15 minutes, with no need for Obsidian to be open. Athena turns them into to-dos. She only reads your calls. She never changes anything in Granola.</p>
+      {g === undefined ? <Skel /> : g?.connected_at ? (
+        <>
+          <div className="job">
+            <div className="job-main">
+              <span className="card-title">{broken ? 'Needs reconnecting' : `Connected${g.email ? ` as ${g.email}` : ''}`}</span>
+              <span className="small muted">
+                {broken ? 'Granola stopped accepting the connection. Click Reconnect.'
+                  : g.last_run_at ? `Checked ${fWhen.format(new Date(g.last_run_at))}.${g.status === 'error' ? ' That check did not work, so it tries again in 15 minutes.' : ''}`
+                    : 'First check within 15 minutes.'}
+                {total > 0 && !broken ? ` ${total} ${total === 1 ? 'call' : 'calls'} brought in so far.` : ''}
+              </span>
+            </div>
+            <div className="btn-row">
+              <button className={broken ? 'btn' : 'linkbtn'} type="button" disabled={busy} onClick={connect}>Reconnect</button>
+              <button className="linkbtn danger" type="button" onClick={remove}>Disconnect</button>
+            </div>
+          </div>
+          <p className="small muted">Once your calls show up here, turn off the Granola add-on in Obsidian, so a call is never saved twice.</p>
+        </>
+      ) : (
+        <div className="btn-row"><button className="btn" type="button" disabled={busy} onClick={connect}>{busy ? 'Opening Granola…' : 'Connect Granola'}</button></div>
+      )}
+      {msg && <p className={/^(Connected|Disconnected)/.test(msg) ? 'small' : 'form-msg'}>{msg}</p>}
     </Panel>
   );
 }
