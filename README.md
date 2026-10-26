@@ -9,6 +9,7 @@ Stephanie's Chief of Staff app for operations and marketing. React on Netlify, S
 - Two-way vault sync every 15 minutes (`sync/sync.py`, run by `.github/workflows/vault-sync.yml`).
 - Marketing hub: pipeline, calendar, idea bank and brand files.
 - Athena chat: messages go to `athena_requests`, the `athena-dispatch` edge function starts `.github/workflows/athena.yml`, and Claude Code answers using `athena/db.py`.
+- Granola calls: Settings > Granola signs in to Granola once (`src/lib/granola.js`). Every Vault sync run then saves new calls as pages in `Meetings` (`athena/granola.py`), so Obsidian does not need to be open.
 - Database tables for briefs, money, content, Rocks, Scorecard, Issues, Level 10, pages, calendar feeds and Athena requests. The screens for those come next.
 
 ## One-time setup

@@ -40,7 +40,10 @@ ALLOWED_TOOLS = ['Read', 'Write', 'Glob', 'Grep', 'Bash(python3 athena/db.py:*)'
                  'Bash(python3 athena/blotato.py:*)', 'Bash(python3 athena/media.py:*)',
                  'Bash(python3 athena/ideas.py:*)', 'Bash(python3 athena/site.py:*)',
                  'Bash(python3 athena/gcal.py:*)', 'Bash(python3 athena/linkedin.py:*)',
-                 'Bash(python3 athena/stats.py:*)']
+                 'Bash(python3 athena/stats.py:*)',
+                 # Status only: pulling calls stays with the Vault sync run, so two runs never
+                 # swap the same Granola sign-in at once.
+                 'Bash(python3 athena/granola.py --status)']
 BRIEF_TYPES = {'monday_plan': 'Monday plan', 'friday_wrap': 'Friday wrap'}
 # Jobs that are only a script, no Claude: key -> (command, page the note is saved as, where she reads it).
 SCRIPT_JOBS = {

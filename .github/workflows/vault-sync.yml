@@ -38,6 +38,18 @@ jobs:
         with:
           python-version: '3.12'
 
+      # New Granola calls become pages in the Meetings folder (athena/granola.py), so the sync
+      # below copies them into Obsidian. Does nothing until she connects Granola in Settings.
+      # A Granola problem never stops the sync.
+      - name: Bring in new Granola calls
+        if: ${{ !inputs.dry_run }}
+        continue-on-error: true
+        timeout-minutes: 4
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 athena/granola.py
+
       - name: Sync
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

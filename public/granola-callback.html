@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Connecting Granola</title>
+<style>body{font:16px system-ui,sans-serif;background:#fff;color:#222;margin:40px 16px}</style>
+</head>
+<body>
+<p>Connecting Granola…</p>
+<script>
+  // Granola sends her here after she says yes. Pass its answer on to Settings under names the
+  // app's own sign-in code ignores (src/lib/granola.js explains why), then finish there.
+  var q = new URLSearchParams(window.location.search), out = new URLSearchParams();
+  ['code', 'state', 'error'].forEach(function (k) { if (q.get(k)) out.set('granola_' + k, q.get(k)); });
+  window.location.replace('/settings?' + out.toString());
+</script>
+</body>
+</html>
