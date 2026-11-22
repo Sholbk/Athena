@@ -10,6 +10,9 @@
 import { supabase } from './supabase.js';
 
 const AUTH = 'https://mcp-auth.granola.ai/oauth2';
+// Register and token go through this site (netlify.toml): Granola's answers no longer carry the
+// header a web page needs to read them. Sending her to Granola to approve still goes straight there.
+const PROXY = '/granola-auth';
 const RESOURCE = 'https://mcp.granola.ai/mcp';
 const SCOPE = 'openid email profile offline_access mcp';
 const FRESH_MS = 15 * 60 * 1000;
@@ -19,7 +22,7 @@ const random = (n) => b64url(crypto.getRandomValues(new Uint8Array(n)));
 
 export async function startGranola() {
   const redirect_uri = `${window.location.origin}/granola-callback.html`;
-  const r = await fetch(`${AUTH}/register`, {
+  const r = await fetch(`${PROXY}/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -62,7 +65,7 @@ async function finish(params) {
   if (params.get('granola_error')) return params.get('granola_error') === 'access_denied' ? 'declined' : 'error';
   if (!params.get('granola_code')) return 'error';
 
-  const r = await fetch(`${AUTH}/token`, {
+  const r = await fetch(`${PROXY}/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
