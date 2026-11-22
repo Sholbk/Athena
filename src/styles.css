@@ -78,6 +78,10 @@ label.f{display:grid;gap:4px;font-size:13px;font-weight:700;color:var(--muted);m
 @media (prefers-reduced-motion: reduce){.skel span{animation:none}}
 
 .center{min-height:100vh;display:grid;place-content:center;justify-items:center;gap:10px;text-align:center;padding:24px}
+.login{min-height:100vh;display:flex;flex-direction:column}
+.login .center{min-height:0;flex:1}
+.login-foot{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 22px;padding:16px 16px 24px;font-size:14px}
+.login-foot a{color:var(--muted)}
 .center h2{font:650 26px/1.2 var(--f-display);margin:6px 0 0}
 .center h2.wordmark{font-size:40px;margin-top:14px}
 .center .tagline{font-size:24px;color:var(--ink);margin:0 0 14px}
