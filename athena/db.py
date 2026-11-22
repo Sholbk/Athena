@@ -108,6 +108,12 @@ def values(t, sets, set_files):
     return data
 
 
+def protect(t, row):
+    # Claude Code rewrites this page from her Mac (CLAUDECODE.md). An edit here would only be overwritten.
+    if t == 'pages' and row.get('title') == 'Claude Code log':
+        sys.exit('The Claude Code log page is written by Claude Code. Athena reads it but never changes it.')
+
+
 def find(t, ref):
     q = urllib.parse.quote(ref)
     if len(ref) == 36 and ref.count('-') == 4:
@@ -170,6 +176,7 @@ def main():
     elif a.cmd == 'set':
         table_ok(a.table, write=True)
         row = find(a.table, a.ref)
+        protect(a.table, row)
         data = values(a.table, a.set, a.set_file)
         if not data:
             sys.exit('Nothing to change. Pass --set COL=VALUE.')
@@ -178,6 +185,7 @@ def main():
     elif a.cmd == 'delete':
         table_ok(a.table, write=True)
         row = find(a.table, a.ref)
+        protect(a.table, row)
         api('PATCH', f'{a.table}?id=eq.{row["id"]}', {'deleted_at': datetime.datetime.now(datetime.timezone.utc).isoformat()})
         print(json.dumps({'deleted': row['id'], 'title': row['title']}))
 
