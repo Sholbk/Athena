@@ -2,6 +2,21 @@
   command = "npm run build"
   publish = "dist"
 
+# Granola's sign-in server stopped sending the header that lets a web page read its answers,
+# so the two requests the Settings page makes to it go through this site instead (same origin).
+# Only these two addresses are passed on. They carry no secrets: Athena is a public client using PKCE.
+[[redirects]]
+  from = "/granola-auth/register"
+  to = "https://mcp-auth.granola.ai/oauth2/register"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/granola-auth/token"
+  to = "https://mcp-auth.granola.ai/oauth2/token"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
