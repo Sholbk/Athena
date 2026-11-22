@@ -6,6 +6,8 @@ mark it running, build the prompt, run `claude -p`, and save the result (or the 
 
 Three kinds of row:
   - chat: a message from the Athena tab. Guide is PROMPT.md, the reply shows in the chat.
+  Chat and the report jobs below also get CLAUDECODE.md: read the page "Claude Code log" (written
+  from her Mac by a Claude Code hook) and close tasks Claude Code already finished.
   - report job (daily brief, Monday plan, Friday wrap): queued by the database clock or a
     Run now button. Guide is the job's prompt in athena_jobs. The reply is the document,
     and this script saves it where the Today page reads it.
@@ -138,7 +140,7 @@ def chat_prompt(req, history, job):
     if job:  # a meeting, such as the Level 10 with Metis
         guide = job['prompt'] + '\n\n' + read('JOBS.md')
     else:
-        guide = read('PROMPT.md') + '\n\n' + read('CALLS.md') + '\n\n' + read('POSTS.md') + '\n\n' + read('IDEAS.md') + '\n\n' + calendar_for(None)
+        guide = read('PROMPT.md') + '\n\n' + read('CLAUDECODE.md') + '\n\n' + read('CALLS.md') + '\n\n' + read('POSTS.md') + '\n\n' + read('IDEAS.md') + '\n\n' + calendar_for(None)
     convo = conversation(history, 'Metis' if job else 'Athena')
     return f'{guide}\n\nRight now it is {mountain_now()}.\n\n{convo}Stephanie\'s new message:\n\n{req["message"]}'
 
@@ -160,7 +162,7 @@ def report_prompt(job):
         return f'{job["prompt"]}\n\n{read("LINKEDIN.md")}\n\n{hand_back}\n\nRight now it is {mountain_now()}.'
     if numbers:  # no calls, no calendar: this run copies numbers in
         return f'{job["prompt"]}\n\n{read("STATS.md")}\n\n{hand_back}\n\nRight now it is {mountain_now()}.'
-    return (f'{job["prompt"]}\n\n{read("JOBS.md")}\n\n{read("CALLS.md")}\n\n{hand_back}\n\n'
+    return (f'{job["prompt"]}\n\n{read("JOBS.md")}\n\n{read("CLAUDECODE.md")}\n\n{read("CALLS.md")}\n\n{hand_back}\n\n'
             f'Right now it is {mountain_now()}.\n\n{calendar_for(job["key"])}')
 
 
@@ -314,7 +316,9 @@ def main():
             api('PATCH', f'athena_requests?id=eq.{rid}', {'status': 'done', 'reply': reply, 'error': None, 'finished_at': now()})
         else:
             failures += 1
-            print(f'  failed: {err}', file=sys.stderr)
+            # The error can hold Athena's own words, and this repo's run logs are public: it is saved
+            # on the request below, where she reads it in the app.
+            print('  failed: the error is saved on the request in the app', file=sys.stderr)
             api('PATCH', f'athena_requests?id=eq.{rid}', {'status': 'failed', 'error': (err or 'Unknown error')[:2000], 'finished_at': now()})
     if failures:
         sys.exit(f'{failures} request(s) failed. Each one shows its error in the app.')
