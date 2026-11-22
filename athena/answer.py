@@ -316,7 +316,9 @@ def main():
             api('PATCH', f'athena_requests?id=eq.{rid}', {'status': 'done', 'reply': reply, 'error': None, 'finished_at': now()})
         else:
             failures += 1
-            print(f'  failed: {err}', file=sys.stderr)
+            # The error can hold Athena's own words, and this repo's run logs are public: it is saved
+            # on the request below, where she reads it in the app.
+            print('  failed: the error is saved on the request in the app', file=sys.stderr)
             api('PATCH', f'athena_requests?id=eq.{rid}', {'status': 'failed', 'error': (err or 'Unknown error')[:2000], 'finished_at': now()})
     if failures:
         sys.exit(f'{failures} request(s) failed. Each one shows its error in the app.')
