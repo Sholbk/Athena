@@ -4,7 +4,7 @@ Last updated Oct 17, 2026.
 
 ## Live
 
-App: https://athena.dragonflywebdesigns.com (Netlify site `athenaprojectmanager`, builds from `main`; the old athenaprojectmanager.netlify.app address still serves the same app, no redirect) DNS: CNAME `athena` -> athenaprojectmanager.netlify.app at SiteGround.
+App: https://athena.dragonflywebdesigns.com (Netlify site `athenaprojectmanager`, builds from `main`; the old athenaprojectmanager.netlify.app address still serves the same app, no redirect). DNS: CNAME `athena` -> athenaprojectmanager.netlify.app at SiteGround.
 Supabase project: `dgjbzkslgjqsopjzzeqy` (named Athena).
 
 | Area | State |
